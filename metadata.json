@@ -1,0 +1,8 @@
+{
+  "name": "Lifewood AI Data Solutions",
+  "description": "Global champion in AI data solutions, bridging East and West. Always On, Never Off.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

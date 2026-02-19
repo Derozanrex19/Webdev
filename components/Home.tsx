@@ -1,0 +1,394 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Database,
+  Image as ImageIcon,
+  Mic,
+  Video,
+  FileText,
+} from 'lucide-react';
+import { Page } from '../types';
+import Threads from './Threads';
+
+interface HomeProps {
+  onNavigate: (page: Page) => void;
+}
+
+interface RevealOnScrollProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}
+
+interface MetricAccordionItem {
+  title: string;
+  value: string;
+  description: string;
+  image: string;
+  cardClasses: string;
+  titleClasses: string;
+}
+
+const RevealOnScroll: React.FC<RevealOnScrollProps> = ({ children, className = '', delay = 0 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
+    );
+
+    const currentRef = ref.current;
+    if (currentRef) observer.observe(currentRef);
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-[0.98]'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const metricAccordionItems: MetricAccordionItem[] = [
+  {
+    value: '40+',
+    title: 'Global Delivery Centers',
+    description:
+      'Lifewood operates 40+ delivery centers to support high-accuracy AI data services with local operational leadership, quality control, and around-the-clock production support.',
+    image:
+      'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    cardClasses: 'bg-[#f2edd8]',
+    titleClasses: 'text-[#0f1218]',
+  },
+  {
+    value: '30+',
+    title: 'Countries Across All Continents',
+    description:
+      'Lifewood\u2019s global footprint spans 30+ countries and 40+ centers, including extensive operations in Africa, Asia, Europe, and the Americas, enabling region-specific datasets that reflect cultural and linguistic diversity.',
+    image:
+      'https://images.pexels.com/photos/7412069/pexels-photo-7412069.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    cardClasses: 'bg-[#f1be74]',
+    titleClasses: 'text-[#0f1218]',
+  },
+  {
+    value: '50+',
+    title: 'Language Capabilities and Dialects',
+    description:
+      'Our multilingual teams process speech, text, and localization workflows across more than 50 languages and dialects, helping models perform reliably across diverse user populations.',
+    image:
+      'https://images.pexels.com/photos/3184436/pexels-photo-3184436.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    cardClasses: 'bg-[#1f573b]',
+    titleClasses: 'text-white',
+  },
+  {
+    value: '56,000+',
+    title: 'Global Online Resources',
+    description:
+      'With 56,788 online specialists worldwide, Lifewood mobilizes a flexible workforce for scalable data collection, annotation, and quality assurance, operating 24/7 across regions.',
+    image:
+      'https://images.pexels.com/photos/8438922/pexels-photo-8438922.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    cardClasses: 'bg-[#02040b]',
+    titleClasses: 'text-white',
+  },
+];
+
+const services = [
+  {
+    title: 'Audio',
+    description: 'Collection, labelling, voice categorization and intelligent customer support data.',
+    icon: Mic,
+    image: 'https://images.pexels.com/photos/696407/pexels-photo-696407.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+  },
+  {
+    title: 'Image',
+    description: 'Collection, classification, object detection and image tagging workflows.',
+    icon: ImageIcon,
+    image: 'https://images.pexels.com/photos/7567463/pexels-photo-7567463.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+  },
+  {
+    title: 'Video',
+    description: 'Collection, labelling, audit, live broadcast and subtitle generation.',
+    icon: Video,
+    image: 'https://images.pexels.com/photos/6973071/pexels-photo-6973071.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+  },
+  {
+    title: 'Text',
+    description: 'Collection, transcription, utterance gathering and sentiment analysis.',
+    icon: FileText,
+    image: 'https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+  },
+];
+
+const partners = [
+  { name: 'Moore Foundation', logo: 'https://framerusercontent.com/images/cjJDncfOy71yWizT3ZRdsZB4W0.png' },
+  { name: 'Google', logo: 'https://framerusercontent.com/images/HWbvpkExIBUbdXEGILLSX4PTcEE.png' },
+  { name: 'BYU Pathway Worldwide', logo: 'https://framerusercontent.com/images/m37jhLfPRl449iXOe8op7cY68c.png' },
+  { name: 'FamilySearch', logo: 'https://framerusercontent.com/images/Yq2A1QFJLXgGQ3b7NZPthsD9RBk.png' },
+  { name: 'ancestry', logo: 'https://framerusercontent.com/images/2rRd2Mk1HzeDgPbL0e8wwkUPo.png' },
+  { name: 'Apple', logo: 'https://framerusercontent.com/images/5mxPuoDvu4IebUtQtNowrZOfWSg.png' },
+  { name: 'Microsoft', logo: 'https://framerusercontent.com/images/RyIkooWlUn6nQYbljETePWzd2Ac.png' },
+];
+const marqueePartners = [...partners, ...partners, ...partners];
+
+const Home: React.FC<HomeProps> = ({ onNavigate }) => {
+  const [openMetricIndex, setOpenMetricIndex] = useState(3);
+  const homeStats = [
+    { value: '56,788', label: 'ONLINE RESOURCES' },
+    { value: '30+', label: 'COUNTRIES' },
+    { value: '40+', label: 'DELIVERY CENTERS' },
+  ];
+
+  return (
+    <div className="bg-lifewood-paper text-lifewood-darkSerpent">
+      <section className="relative flex min-h-[calc(100vh-96px)] items-center overflow-hidden bg-lifewood-darkSerpent text-lifewood-paper">
+        <div className="absolute inset-0">
+          <Threads
+            color={[1, 0.70196, 0.27843]}
+            amplitude={1.05}
+            distance={0.85}
+            enableMouseInteraction
+          />
+          <Threads
+            color={[1, 0.70196, 0.27843]}
+            amplitude={0.55}
+            distance={1.35}
+            enableMouseInteraction={false}
+            className="absolute inset-0 opacity-50"
+          />
+          <div className="absolute inset-0 bg-lifewood-darkSerpent/52"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_28%,rgba(255,179,71,0.18),transparent_55%)] mix-blend-screen"></div>
+        </div>
+
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 text-center sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-5xl">
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-lifewood-saffron">AI Data Solutions</p>
+            <h1 className="text-4xl font-extrabold leading-tight text-white md:text-7xl">
+              The world&apos;s leading provider of AI-powered data solutions.
+            </h1>
+            <p className="mx-auto mt-6 max-w-3xl text-base text-lifewood-grey-light/90 md:text-2xl md:leading-relaxed">
+              We connect local expertise with global AI data infrastructure to help organizations launch new ways of
+              thinking, learning, and doing.
+            </p>
+            <div className="mt-10 flex justify-center">
+              <button
+                onClick={() => onNavigate(Page.CONTACT)}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3 font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
+              >
+                Contact Us <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-white/15 bg-[#2b6c46]">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-0 px-4 sm:grid-cols-3 sm:px-6 lg:px-8">
+          {homeStats.map((stat, index) => (
+            <article
+              key={stat.label}
+              className={`group relative px-8 py-10 text-center transition-all duration-300 hover:bg-white/5 ${
+                index < homeStats.length - 1 ? 'sm:border-r sm:border-white/20' : ''
+              }`}
+            >
+              <div className="mx-auto w-fit">
+                <span className="text-5xl font-extrabold leading-none tracking-tight text-lifewood-saffron">{stat.value}</span>
+              </div>
+              <p className="mt-3 text-xs font-medium tracking-[0.15em] text-white/85">{stat.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <RevealOnScroll>
+          <div className="mb-12 max-w-3xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-lifewood-castleton">About Us</p>
+            <h2 className="text-3xl font-bold md:text-4xl">Transforming data into meaningful global solutions.</h2>
+            <p className="mt-5 text-lifewood-darkSerpent/75">
+              At Lifewood we empower our company and clients to realize the transformative potential of AI. By connecting
+              local talent with global infrastructure, we create opportunities and drive inclusive growth.
+            </p>
+          </div>
+        </RevealOnScroll>
+        <div className="space-y-3">
+          {metricAccordionItems.map((item, index) => {
+            const isOpen = openMetricIndex === index;
+            return (
+              <RevealOnScroll key={item.title} delay={index * 110}>
+                <article
+                  onMouseEnter={() => setOpenMetricIndex(index)}
+                  onFocusCapture={() => setOpenMetricIndex(index)}
+                  className={`overflow-hidden rounded-2xl ${item.cardClasses} transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    isOpen ? 'shadow-2xl' : 'shadow-md'
+                  }`}
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isOpen}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setOpenMetricIndex(index);
+                      }
+                    }}
+                    className="flex w-full cursor-default items-center justify-between gap-3 px-4 py-3.5 text-left md:px-5 md:py-4"
+                  >
+                    <h3 className={`text-[1.8rem] font-medium leading-[1.15] md:text-[2.1rem] ${item.titleClasses}`}>
+                      <span className="mr-2">{item.value}</span>
+                      {item.title}
+                    </h3>
+                    <span
+                      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 text-2xl font-medium text-lifewood-darkSerpent transition-transform duration-500 ${
+                        isOpen ? 'rotate-180' : 'rotate-0'
+                      }`}
+                    >
+                      {isOpen ? '\u2212' : '+'}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`grid transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div
+                        className={`grid grid-cols-1 gap-4 px-4 pb-4 pt-1 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] md:grid-cols-12 md:gap-6 md:px-5 md:pb-5 ${
+                          isOpen ? 'translate-y-0' : 'translate-y-2'
+                        }`}
+                      >
+                        <div className="md:col-span-5 lg:col-span-4">
+                          <div className="relative h-36 overflow-hidden rounded-xl md:h-44">
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+                          </div>
+                        </div>
+                        <div className="md:col-span-7 lg:col-span-8 md:flex md:items-center">
+                          <p
+                            className={`max-w-3xl text-[0.95rem] leading-[1.65] ${
+                              item.titleClasses === 'text-white' ? 'text-white/85' : 'text-[#0f1218]/80'
+                            }`}
+                          >
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </RevealOnScroll>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="border-y border-lifewood-darkSerpent/10 bg-lifewood-seasalt">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-lifewood-darkSerpent/60">Our Clients And Partners</p>
+          <div className="marquee-wrap mt-6 overflow-hidden bg-transparent py-8 md:py-12">
+            <div className="marquee-track flex w-max items-center gap-2 md:gap-4 px-2 md:px-4">
+              {marqueePartners.map((partner, index) => (
+                <span
+                  key={`${partner.name}-${index}`}
+                  className="flex h-44 min-w-[250px] md:h-72 md:min-w-[460px] items-center justify-center bg-transparent px-1"
+                >
+                  <img
+                    src={partner.logo}
+                    alt={`${partner.name} logo`}
+                    loading="lazy"
+                    onError={(event) => {
+                      const fallback = `data:image/svg+xml;utf8,${encodeURIComponent(
+                        `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='40'><rect width='100%' height='100%' fill='transparent'/><text x='50%' y='52%' dominant-baseline='middle' text-anchor='middle' fill='#4B5563' font-family='Arial, sans-serif' font-size='14' font-weight='700'>${partner.name}</text></svg>`
+                      )}`;
+                      event.currentTarget.src = fallback;
+                    }}
+                    className="h-24 md:h-44 w-auto max-w-[240px] md:max-w-[430px] object-contain transition-transform duration-300 hover:scale-105"
+                    style={{
+                      filter: 'drop-shadow(0 12px 22px rgba(19,48,32,0.14))',
+                      mixBlendMode: 'multiply',
+                    }}
+                  />
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <RevealOnScroll>
+          <div className="mb-10 flex items-center gap-3">
+            <Database className="h-6 w-6 text-lifewood-castleton" />
+            <h2 className="text-3xl font-bold md:text-4xl">AI Data Services</h2>
+          </div>
+          <p className="mb-10 max-w-3xl text-lifewood-darkSerpent/75">
+            No matter the industry, size, or data type involved, our services are built to satisfy AI data processing
+            requirements at enterprise scale.
+          </p>
+        </RevealOnScroll>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {services.map((service, index) => (
+            <RevealOnScroll key={service.title} delay={index * 120}>
+              <div
+                className="group rounded-2xl border border-lifewood-darkSerpent/10 bg-white transition hover:-translate-y-1 hover:border-lifewood-castleton/30 hover:shadow-lg overflow-hidden"
+              >
+                <div className="h-40 relative overflow-hidden">
+                  <img src={service.image} alt={service.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/55 to-transparent"></div>
+                </div>
+                <div className="p-7">
+                  <div className="mb-4 inline-flex rounded-xl bg-lifewood-seasalt p-3 text-lifewood-castleton transition group-hover:bg-lifewood-castleton group-hover:text-white">
+                    <service.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-xl font-bold">{service.title}</h3>
+                  <p className="mt-2 text-sm text-lifewood-darkSerpent/70">{service.description}</p>
+                  <div className="mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-lifewood-castleton">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Enterprise-ready pipeline
+                  </div>
+                </div>
+              </div>
+            </RevealOnScroll>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-lifewood-darkSerpent py-16">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 sm:px-6 lg:flex-row lg:items-center lg:px-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-lifewood-saffron">Global Data Engineering</p>
+            <h2 className="mt-3 text-3xl font-bold text-white">We provide global Data Engineering Services to enable AI solutions.</h2>
+          </div>
+          <button
+            onClick={() => onNavigate(Page.CONTACT)}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-lifewood-saffron px-7 py-3 font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
+          >
+            Contact Us <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Home;
