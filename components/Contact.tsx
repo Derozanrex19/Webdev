@@ -1,14 +1,30 @@
 import React from 'react';
 import { Mail, Phone, MapPin, ArrowRight, MessageSquare } from 'lucide-react';
+import LiquidEther from './LiquidEther';
 
 const Contact: React.FC = () => {
   return (
     <div className="bg-lifewood-paper py-24 relative overflow-hidden">
-      {/* Abstract Background Element */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M0 0 C 30 10 50 30 50 50 C 50 70 70 90 100 100 V 0 Z" fill="#046241" />
-          </svg>
+      <div className="absolute inset-0">
+        <LiquidEther
+          colors={['#046241', '#F4A933', '#133020']}
+          mouseForce={16}
+          cursorSize={90}
+          isViscous
+          viscous={28}
+          iterationsViscous={24}
+          iterationsPoisson={24}
+          resolution={0.4}
+          isBounce={false}
+          autoDemo
+          autoSpeed={0.45}
+          autoIntensity={1.8}
+          takeoverDuration={0.25}
+          autoResumeDelay={3000}
+          autoRampDuration={0.6}
+        />
+      </div>
+      <div className="absolute inset-0 bg-lifewood-paper/80 pointer-events-none">
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -23,7 +39,7 @@ const Contact: React.FC = () => {
             </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 bg-white rounded-3xl p-8 md:p-12 shadow-2xl border border-lifewood-darkSerpent/5 animate-fade-in-up-delay-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 bg-lifewood-paper/95 rounded-3xl p-8 md:p-12 shadow-2xl border border-lifewood-castleton/15 animate-fade-in-up-delay-1">
             
             {/* Form */}
             <div className="space-y-8">
@@ -32,29 +48,29 @@ const Contact: React.FC = () => {
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">First Name</label>
-                            <input type="text" className="w-full bg-lifewood-seasalt border border-transparent focus:border-lifewood-saffron rounded-lg p-4 focus:ring-2 focus:ring-lifewood-saffron/20 focus:outline-none transition-all" placeholder="Jane" />
+                            <input type="text" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Jane" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">Last Name</label>
-                            <input type="text" className="w-full bg-lifewood-seasalt border border-transparent focus:border-lifewood-saffron rounded-lg p-4 focus:ring-2 focus:ring-lifewood-saffron/20 focus:outline-none transition-all" placeholder="Doe" />
+                            <input type="text" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Doe" />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">Work Email</label>
-                        <input type="email" className="w-full bg-lifewood-seasalt border border-transparent focus:border-lifewood-saffron rounded-lg p-4 focus:ring-2 focus:ring-lifewood-saffron/20 focus:outline-none transition-all" placeholder="jane@company.com" />
+                        <input type="email" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="jane@company.com" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">How can we help?</label>
-                        <textarea rows={4} className="w-full bg-lifewood-seasalt border border-transparent focus:border-lifewood-saffron rounded-lg p-4 focus:ring-2 focus:ring-lifewood-saffron/20 focus:outline-none transition-all" placeholder="Tell us about your project needs..."></textarea>
+                        <textarea rows={4} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Tell us about your project needs..."></textarea>
                     </div>
-                    <button className="w-full bg-lifewood-darkSerpent text-white font-bold py-4 rounded-lg hover:bg-lifewood-castleton transition-colors flex justify-center items-center gap-2 shadow-lg hover:shadow-xl">
+                    <button className="w-full bg-lifewood-saffron text-lifewood-darkSerpent font-bold py-4 rounded-lg hover:bg-[#f7b646] transition-colors flex justify-center items-center gap-2 shadow-lg hover:shadow-xl">
                         Send Message <ArrowRight className="w-5 h-5" />
                     </button>
                 </form>
             </div>
 
             {/* Info Card */}
-            <div className="flex flex-col justify-between bg-lifewood-darkSerpent text-lifewood-paper rounded-2xl p-8 md:p-12 relative overflow-hidden group">
+            <div className="flex flex-col justify-between bg-gradient-to-br from-lifewood-darkSerpent via-lifewood-castleton to-[#0f3a2b] text-lifewood-paper rounded-2xl p-8 md:p-12 relative overflow-hidden group">
                 {/* Hover Effect */}
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-lifewood-saffron/10 rounded-full blur-3xl group-hover:bg-lifewood-saffron/20 transition-colors duration-500"></div>
 

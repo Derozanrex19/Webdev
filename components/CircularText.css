@@ -1,0 +1,60 @@
+.circular-text {
+  margin: 0 auto;
+  border-radius: 9999px;
+  width: 76px;
+  height: 76px;
+  position: relative;
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+  transform-origin: 50% 50%;
+  -webkit-transform-origin: 50% 50%;
+  color: #133020;
+}
+
+.circular-text span {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  user-select: none;
+  transition: transform 0.5s cubic-bezier(0, 0, 0, 1);
+}
+
+.circular-text__center-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: #ffb347;
+  box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.28);
+}
+
+.circular-text__arrow {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 2px);
+  width: 1px;
+  height: 62px;
+  background: #ffb347;
+  transform: translateX(-50%);
+}
+
+.circular-text__arrow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid #ffb347;
+  border-bottom: 1.5px solid #ffb347;
+  transform: translateX(-50%) rotate(45deg);
+}

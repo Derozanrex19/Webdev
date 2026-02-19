@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" fill="none">
+  <path d="M52 78L82 46L112 78V141L82 173L52 141V78Z" fill="#FFB347"/>
+  <text
+    x="132"
+    y="145"
+    fill="#046241"
+    stroke="#0B3A2E"
+    stroke-width="2.5"
+    paint-order="stroke fill"
+    font-family="Manrope, Arial, sans-serif"
+    font-size="118"
+    font-weight="800"
+    letter-spacing="-2.5"
+  >
+    lifewood
+  </text>
+</svg>

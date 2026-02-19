@@ -82,8 +82,11 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
       <div className="mx-auto max-w-7xl rounded-full border border-white/70 bg-white/60 shadow-[0_12px_30px_rgba(19,48,32,0.10)] backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex shrink-0 cursor-pointer items-center gap-3" onClick={() => onNavigate(Page.HOME)}>
-            <div className="h-8 w-5 bg-lifewood-saffron" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}></div>
-            <span className="font-sans text-2xl font-extrabold tracking-tight text-lifewood-darkSerpent">lifewood</span>
+            <img
+              src="/lifewood-logo-custom.svg"
+              alt="Lifewood"
+              className="h-9 w-auto object-contain"
+            />
           </div>
 
           <div className="hidden items-center gap-1 lg:flex">

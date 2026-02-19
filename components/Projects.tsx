@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Cpu, BrainCircuit, ShieldCheck, ArrowRight, Headset, Mic, ScanEye, ScrollText } from 'lucide-react';
+import { Page } from '../types';
 
 interface ProjectItem {
   id: string;
@@ -12,56 +13,60 @@ interface ProjectItem {
 const projects: ProjectItem[] = [
   {
     id: '2.1',
-    title: 'Model Training',
-    description: 'Large-scale data processing to optimize neural network weights and performance. We manage the entire pipeline from raw data ingestion to hyperparameter tuning, ensuring your models achieve state-of-the-art accuracy. Our distributed computing clusters allow for rapid iteration cycles.',
+    title: 'AI Data Extraction',
+    description: 'Using AI, we optimize the acquisition of image and text from multiple sources. Techniques include onsite scanning, drone photography, negotiation with archives and the formation of alliances with corporations, religious organizations and governments.',
     icon: <BrainCircuit className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.2',
     title: 'Machine Learning Enablement',
     description: 'From simple data to deep learning, our data solutions are highly flexible and can enable a wide variety of ML systems, no matter how complex the model. We provide the infrastructure and annotated datasets required to jumpstart your AI initiatives, reducing time-to-market by up to 40%.',
     icon: <Cpu className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1516110833967-0b5716ca1387?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.3',
-    title: 'Data Validation',
-    description: 'Ensuring accuracy and consistency across all datasets through automated and manual auditing. Our "human-in-the-loop" validation process guarantees 99.9% quality assurance for mission-critical applications, utilizing a global workforce of subject matter experts.',
+    title: 'Autonomous Driving Technology',
+    description: 'Lifewood supports autonomous driving programs with high-volume, high-precision data operations including collection, labeling, QA, and scenario-specific edge-case handling for ADAS and self-driving models.',
     icon: <ShieldCheck className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.4',
     title: 'AI-Enabled Customer Service',
     description: 'AI-enabled customer service is now the quickest and most effective route for institutions to deliver personalized, proactive experiences that drive customer engagement. AI powered services can increase customer engagement, multiplying cross-sell and upsell opportunities. Guided by our experts AI customer service can transform customer relationships creating an improved cycle of service, satisfaction and increased customer engagement.',
     icon: <Headset className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1534536281715-e28d76689b4d?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.5',
     title: 'Natural Language Processing and Speech Acquisition',
     description: "We have partnered with some of the world's most advanced companies in NLP development. With a managed workforce that spans the globe, we offer solutions in over 50 language capabilities and can assess various dialects and accents for both text and audio data. We specialize in collecting and transcribing recordings from native speakers. This has involved tens of thousands of conversations, a scale made possible by our expertise in adapting industrial processes and our integration with AI.",
     icon: <Mic className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.6',
-    title: 'Computer Vision',
+    title: 'Computer Vision (CV)',
     description: 'Training AI to see and understand the world requires a high volume of quality training data. Lifewood provides total data solutions for your CV development from collection to annotation to classification and more, for video and image datasets enabling machines to interpret visual information. We have experience in a wide variety of applications including autonomous vehicles, farm monitoring, face recognition and more.',
     icon: <ScanEye className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1527430253228-e93688616381?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2070&auto=format&fit=crop'
   },
   {
     id: '2.7',
     title: 'Genealogy',
     description: "Powered by AI, Lifewood processes genealogical material at speed and scale, to conserve and illuminate family histories, national archives, corporate lists and records of all types. Lifewood has more than 18 years of experience capturing, scanning and processing genealogical data. In fact, Lifewood started with genealogy data as its core business, so that over the years we have accumulated vast knowledge in diverse types of genealogy indexing.\n\nWe have worked with all the major genealogy companies and have extensive experience in transcribing and indexing genealogical content in a wide variety of formats, including tabular, pre-printed forms and paragraph-style records.\n\nWorking across borders, with offices on every continent, our ability with multi-language projects has built an extensive capability spanning more than 50 languages and associated dialects. Now, powered by AI and the latest inter-office communication systems, we are transforming ever more efficient ways to service our clients, while keeping humanity at the centre of our activity.\n\nGenealogical material that we have experience with includes: Census, Vital - BMD, Church and Parish Registers, Passenger Lists, Naturalisation, Military Records, Legal Records, Yearbooks.",
     icon: <ScrollText className="w-6 h-6" />,
-    image: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=2070&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?q=80&w=2070&auto=format&fit=crop'
   }
 ];
 
-const Projects: React.FC = () => {
+interface ProjectsProps {
+  onNavigate: (page: Page) => void;
+}
+
+const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
   const [openId, setOpenId] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -101,7 +106,7 @@ const Projects: React.FC = () => {
                     <span className="text-lifewood-saffron">Intelligence.</span>
                 </h1>
                 <p className="text-xl text-lifewood-grey-light/90 max-w-xl font-light leading-relaxed border-l-4 border-lifewood-castleton pl-6">
-                    From neural network optimization to enterprise-grade validation, explore the technical initiatives powering our global AI infrastructure.
+                    From building AI datasets in diverse languages and environments to developing platforms that enhance productivity and open new opportunities in under-resourced economies.
                 </p>
             </div>
          </div>
@@ -221,7 +226,10 @@ const Projects: React.FC = () => {
               <p className="text-lifewood-paper/60 mb-10 max-w-2xl mx-auto text-lg">
                   Our team of engineers and data specialists are ready to integrate with your workflow. Experience the precision of Lifewood's data engine.
               </p>
-              <button className="bg-lifewood-saffron text-lifewood-darkSerpent font-bold py-4 px-10 rounded-full hover:bg-white transition-colors duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform flex items-center gap-2 mx-auto">
+              <button
+                  onClick={() => onNavigate(Page.CONTACT)}
+                  className="bg-lifewood-saffron text-lifewood-darkSerpent font-bold py-4 px-10 rounded-full hover:bg-white transition-colors duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform flex items-center gap-2 mx-auto"
+              >
                   Get in Touch
               </button>
           </div>

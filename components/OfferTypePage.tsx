@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { Page } from '../types';
 
 type OfferTypeKey = 'A' | 'B' | 'C' | 'D';
+type OrbKey = 'orbA' | 'orbB' | 'orbC';
 
 interface OfferTypePageProps {
   type: OfferTypeKey;
+  onNavigate: (page: Page) => void;
 }
 
 interface OfferContent {
@@ -106,9 +109,188 @@ const offerContent: Record<OfferTypeKey, OfferContent> = {
   },
 };
 
-const OfferTypePage: React.FC<OfferTypePageProps> = ({ type }) => {
+const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   const content = offerContent[type];
   const [activeIndex, setActiveIndex] = useState(0);
+  const [orbPositions, setOrbPositions] = useState({
+    orbA: { x: 0, y: 0 },
+    orbB: { x: 0, y: 0 },
+    orbC: { x: 0, y: 0 },
+  });
+  const [dragState, setDragState] = useState<{
+    key: OrbKey;
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+    moved: boolean;
+  } | null>(null);
+  const heroTitles: Record<OfferTypeKey, [string, string]> = {
+    A: ['Type A -', 'Data Servicing'],
+    B: ['Type B -', 'Vertical LLM Data'],
+    C: ['Type C -', 'Horizontal LLM Data'],
+    D: ['Type D -', 'AIGC Content'],
+  };
+
+  const heroDescriptions: Record<OfferTypeKey, string> = {
+    A:
+      'End-to-end data services specializing in multi-language datasets, including document capture, data collection and preparation, extraction, cleaning, labeling, annotation, quality assurance, and formatting.',
+    B:
+      'Domain-specific datasets for expert language intelligence, tuned for regulated and high-precision enterprise environments.',
+    C:
+      'Broad-domain multilingual datasets built to improve foundation model versatility and generalized reasoning quality.',
+    D:
+      'AI-generated and AI-assisted content operations that combine scalable generation pipelines with editorial control.',
+  };
+
+  const heroHighlights: Record<OfferTypeKey, [string, string]> = {
+    A: [
+      'Multi-language genealogy documents, newspapers, and archives to facilitate global ancestry research',
+      'QQ Music of over millions non-Chinese songs and lyrics',
+    ],
+    B: [
+      'Terminology-aligned training corpora for legal, healthcare, and finance domains',
+      'Expert-validated datasets to improve factual precision and domain trustworthiness',
+    ],
+    C: [
+      'Cross-domain instruction and conversation data across multiple industries',
+      'Safety-filtered multilingual datasets for broader production reliability',
+    ],
+    D: [
+      'Prompt libraries, synthetic generation workflows, and reusable benchmarking sets',
+      'Human editorial loops for quality, consistency, and factual integrity at scale',
+    ],
+  };
+
+  const heroOrbs: Record<
+    OfferTypeKey,
+    Array<{
+      key: OrbKey;
+      wrapperClass: string;
+      shapeClass: string;
+      rotation: number;
+      gradient: string;
+      shadow: string;
+      floatAnim: string;
+    }>
+  > = {
+    A: [
+      {
+        key: 'orbA',
+        wrapperClass: 'absolute left-[10%] top-[8%] h-24 w-24',
+        shapeClass: 'rounded-[44%]',
+        rotation: 12,
+        gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
+        shadow: '0 12px 30px rgba(0,0,0,0.28)',
+        floatAnim: 'animate-[orbFloatA_4.8s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbB',
+        wrapperClass: 'absolute right-[8%] top-[2%] h-28 w-28',
+        shapeClass: 'rounded-[46%]',
+        rotation: -18,
+        gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
+        shadow: '0 14px 32px rgba(0,0,0,0.28)',
+        floatAnim: 'animate-[orbFloatB_5.2s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbC',
+        wrapperClass: 'absolute bottom-[5%] right-[20%] h-40 w-40',
+        shapeClass: 'rounded-[40%]',
+        rotation: 20,
+        gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
+        shadow: '0 18px 40px rgba(0,0,0,0.34)',
+        floatAnim: 'animate-[orbFloatC_5.6s_ease-in-out_infinite]',
+      },
+    ],
+    B: [
+      {
+        key: 'orbA',
+        wrapperClass: 'absolute left-[8%] top-[10%] h-24 w-24',
+        shapeClass: 'rounded-[34%_66%_58%_42%/44%_40%_60%_56%]',
+        rotation: 14,
+        gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
+        shadow: '0 12px 30px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatA_5s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbB',
+        wrapperClass: 'absolute right-[10%] top-[4%] h-28 w-28',
+        shapeClass: 'rounded-[60%_40%_45%_55%/42%_58%_38%_62%]',
+        rotation: -16,
+        gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
+        shadow: '0 14px 32px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatB_5.4s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbC',
+        wrapperClass: 'absolute bottom-[6%] right-[18%] h-40 w-40',
+        shapeClass: 'rounded-[42%_58%_50%_50%/36%_46%_54%_64%]',
+        rotation: 18,
+        gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
+        shadow: '0 18px 40px rgba(0,0,0,0.34)',
+        floatAnim: 'animate-[orbFloatC_5.8s_ease-in-out_infinite]',
+      },
+    ],
+    C: [
+      {
+        key: 'orbA',
+        wrapperClass: 'absolute left-[12%] top-[9%] h-24 w-24',
+        shapeClass: 'rounded-[52%_48%_44%_56%/48%_36%_64%_52%]',
+        rotation: 10,
+        gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
+        shadow: '0 12px 30px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatA_4.9s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbB',
+        wrapperClass: 'absolute right-[9%] top-[1%] h-28 w-28',
+        shapeClass: 'rounded-[38%_62%_58%_42%/44%_58%_42%_56%]',
+        rotation: -20,
+        gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
+        shadow: '0 14px 32px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatB_5.1s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbC',
+        wrapperClass: 'absolute bottom-[6%] right-[22%] h-40 w-40',
+        shapeClass: 'rounded-[46%_54%_38%_62%/42%_48%_52%_58%]',
+        rotation: 22,
+        gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
+        shadow: '0 18px 40px rgba(0,0,0,0.34)',
+        floatAnim: 'animate-[orbFloatC_5.7s_ease-in-out_infinite]',
+      },
+    ],
+    D: [
+      {
+        key: 'orbA',
+        wrapperClass: 'absolute left-[9%] top-[8%] h-24 w-24',
+        shapeClass: 'rounded-[48%_52%_62%_38%/50%_42%_58%_50%]',
+        rotation: 11,
+        gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
+        shadow: '0 12px 30px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatA_5.2s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbB',
+        wrapperClass: 'absolute right-[8%] top-[3%] h-28 w-28',
+        shapeClass: 'rounded-[58%_42%_46%_54%/40%_62%_38%_60%]',
+        rotation: -15,
+        gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
+        shadow: '0 14px 32px rgba(0,0,0,0.32)',
+        floatAnim: 'animate-[orbFloatB_5.5s_ease-in-out_infinite]',
+      },
+      {
+        key: 'orbC',
+        wrapperClass: 'absolute bottom-[5%] right-[19%] h-40 w-40',
+        shapeClass: 'rounded-[44%_56%_40%_60%/46%_44%_56%_54%]',
+        rotation: 19,
+        gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
+        shadow: '0 18px 40px rgba(0,0,0,0.34)',
+        floatAnim: 'animate-[orbFloatC_5.9s_ease-in-out_infinite]',
+      },
+    ],
+  };
 
   const panels = [
     {
@@ -141,6 +323,62 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type }) => {
     setActiveIndex(0);
   }, [type]);
 
+  useEffect(() => {
+    setOrbPositions({
+      orbA: { x: 0, y: 0 },
+      orbB: { x: 0, y: 0 },
+      orbC: { x: 0, y: 0 },
+    });
+    setDragState(null);
+  }, [type]);
+
+  useEffect(() => {
+    if (!dragState) return;
+
+    const DEADZONE = 4;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const dx = event.clientX - dragState.startX;
+      const dy = event.clientY - dragState.startY;
+      const distance = Math.hypot(dx, dy);
+
+      if (!dragState.moved && distance < DEADZONE) return;
+
+      if (!dragState.moved) {
+        setDragState((prev) => (prev ? { ...prev, moved: true } : prev));
+      }
+
+      const nextX = dragState.baseX + dx;
+      const nextY = dragState.baseY + dy;
+
+      setOrbPositions((prev) => ({
+        ...prev,
+        [dragState.key]: {
+          x: Math.max(-50, Math.min(50, nextX)),
+          y: Math.max(-50, Math.min(50, nextY)),
+        },
+      }));
+    };
+
+    const handlePointerUp = () => {
+      setOrbPositions((prev) => ({
+        ...prev,
+        [dragState.key]: { x: 0, y: 0 },
+      }));
+      setDragState(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [dragState]);
+
   const activePanel = panels[activeIndex];
 
   return (
@@ -149,20 +387,57 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type }) => {
       <div className="absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-lifewood-castleton/10 blur-3xl"></div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 lg:px-8">
-        <div className="group relative mb-12 overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-white shadow-xl">
-          <img
-            src={content.image}
-            alt={content.title}
-            className="h-[260px] w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105 md:h-[360px]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-lifewood-darkSerpent/90 via-lifewood-darkSerpent/70 to-lifewood-darkSerpent/25"></div>
-          <div className="absolute inset-0 flex items-end p-6 md:p-10">
-            <div className="max-w-3xl transition-all duration-700 ease-out">
-              <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-lifewood-saffron backdrop-blur-sm">
-                <Sparkles className="h-3.5 w-3.5" /> What We Offer
+        <div className="mb-12 rounded-[28px] border border-lifewood-darkSerpent/10 bg-lifewood-paper p-6 md:p-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-6">
+              <h1 className="text-4xl font-semibold leading-tight text-black md:text-6xl">
+                {heroTitles[type][0]}<br />
+                {heroTitles[type][1]}
+              </h1>
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-lifewood-darkSerpent/88">
+                {heroDescriptions[type]}
               </p>
-              <h1 className="text-3xl font-extrabold leading-tight text-white md:text-5xl">{content.title}</h1>
-              <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">{content.subtitle}</p>
+              <button
+                onClick={() => onNavigate(Page.CONTACT)}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-lifewood-castleton bg-lifewood-saffron px-4 py-2 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
+              >
+                Contact Us
+              </button>
+              <div className="mt-10 space-y-1 text-sm text-lifewood-darkSerpent/90">
+                <p>{heroHighlights[type][0]}</p>
+                <p>{heroHighlights[type][1]}</p>
+              </div>
+            </div>
+            <div className="relative h-[340px] overflow-hidden rounded-3xl lg:col-span-6">
+              {heroOrbs[type].map((orb) => (
+                <div
+                  key={orb.key}
+                  className={`${orb.wrapperClass} cursor-grab active:cursor-grabbing`}
+                  style={{
+                    transform: `translate(${orbPositions[orb.key].x}px, ${orbPositions[orb.key].y}px) rotate(${orb.rotation}deg)`,
+                    transition: dragState?.key === orb.key ? 'none' : 'transform 560ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    setDragState({
+                      key: orb.key,
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      baseX: orbPositions[orb.key].x,
+                      baseY: orbPositions[orb.key].y,
+                      moved: false,
+                    });
+                  }}
+                >
+                  <div
+                    className={`h-full w-full ${orb.shapeClass} ${orb.floatAnim}`}
+                    style={{
+                      backgroundImage: orb.gradient,
+                      boxShadow: orb.shadow,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -171,8 +446,12 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type }) => {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
             <article className="bg-transparent px-2 py-2 lg:col-span-4 lg:min-h-[360px] lg:pr-6">
               <div key={activePanel.id} className="animate-[fadeSlide_540ms_ease]">
-                <h2 className="text-[1.7rem] font-medium leading-none text-lifewood-darkSerpent md:text-[2rem]">{String(activeIndex + 1).padStart(2, '0')}</h2>
-                <h3 className="mt-1.5 text-[1.3rem] font-bold leading-tight text-lifewood-darkSerpent md:text-[1.55rem]">{activePanel.title}</h3>
+                <h2 className="text-[1.7rem] font-medium leading-none text-lifewood-darkSerpent md:text-[2rem]">
+                  {String(activeIndex + 1).padStart(2, '0')}
+                </h2>
+                <h3 className="mt-1.5 text-[1.3rem] font-bold leading-tight text-lifewood-darkSerpent md:text-[1.55rem]">
+                  {activePanel.title}
+                </h3>
                 <p className="mt-3 text-[0.9rem] leading-[1.5] text-lifewood-darkSerpent/76">{activePanel.summary}</p>
                 {activePanel.list.length > 0 && (
                   <ul className="mt-3 space-y-1.5">
@@ -231,6 +510,18 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type }) => {
         @keyframes imageReveal {
           from { opacity: 0.65; transform: scale(1.04); }
           to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes orbFloatA {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes orbFloatB {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes orbFloatC {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
         }
       `}</style>
     </section>

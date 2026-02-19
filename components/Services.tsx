@@ -227,8 +227,22 @@ const Services: React.FC = () => {
         </div>
 
         <div className="mb-24">
-          <RevealOnScroll>
-            <h3 className="text-2xl font-bold text-lifewood-darkSerpent mb-8 text-center">AI Data Services</h3>
+          <RevealOnScroll delay={90}>
+            <div className="mb-10">
+              <div className="mx-auto max-w-4xl overflow-hidden rounded-xl border border-lifewood-darkSerpent/10 bg-black shadow-lg">
+                <div className="relative w-full pb-[56.25%]">
+                  <iframe
+                    className="absolute inset-0 h-full w-full"
+                    src="https://www.youtube.com/embed/g_JvAVL0WY4?rel=0&modestbranding=1"
+                    title="Lifewood AI Data Services"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            </div>
           </RevealOnScroll>
           <RevealOnScroll delay={120}>
             <MagicBento

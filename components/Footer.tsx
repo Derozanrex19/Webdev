@@ -1,70 +1,79 @@
-import React from 'react';
-import { Facebook, Instagram, Linkedin, Twitter, Mail, MapPin } from 'lucide-react';
+﻿import React from 'react';
+import { Facebook, Instagram, Linkedin, Youtube, PhoneCall } from 'lucide-react';
+import { Page } from '../types';
 
-const Footer: React.FC = () => {
+interface FooterProps {
+  onNavigate: (page: Page) => void;
+}
+
+const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const socialItems = [
+    { label: 'LinkedIn', icon: Linkedin, href: 'https://www.linkedin.com/company/lifewood-data-technology/' },
+    { label: 'Facebook', icon: Facebook, href: 'https://www.facebook.com/lifewooddata' },
+    { label: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/lifewood_data/' },
+    { label: 'Youtube', icon: Youtube, href: 'https://www.youtube.com/@LifewoodDataTechnology' }
+  ];
+
   return (
-    <footer className="bg-lifewood-darkSerpent text-lifewood-paper pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          
-          <div className="col-span-1 md:col-span-1 space-y-6">
-             <div className="flex items-center gap-2">
-                <div className="w-5 h-8 bg-lifewood-saffron" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}></div>
-                <span className="font-bold text-2xl tracking-tight text-white">lifewood</span>
-             </div>
-            <p className="text-sm leading-relaxed text-lifewood-paper/70">
-              Lifewood is a global champion in AI data solutions, bridging innovation between East and West. Always On, Never Off.
+    <footer className="bg-lifewood-paper pt-2">
+      <div className="rounded-t-[18px] bg-gradient-to-r from-[#063320] via-[#04512f] to-[#0a3c2a] px-4 py-5 text-lifewood-paper sm:px-6 sm:py-6 md:px-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 flex items-center gap-2">
+              <button
+                onClick={() => onNavigate(Page.HOME)}
+                className="transition-opacity hover:opacity-90"
+              >
+                <img
+                  src="/lifewood-logo-custom.svg"
+                  alt="Lifewood"
+                  className="h-8 w-auto object-contain"
+                />
+              </button>
+            </div>
+
+            <p className="max-w-[700px] text-sm leading-snug text-lifewood-paper/95 sm:text-base">
+              We provide global Data Engineering Services to enable AI Solutions.
             </p>
-            <div className="flex space-x-4">
-              <Linkedin className="w-5 h-5 cursor-pointer hover:text-lifewood-saffron transition-colors" />
-              <Twitter className="w-5 h-5 cursor-pointer hover:text-lifewood-saffron transition-colors" />
-              <Instagram className="w-5 h-5 cursor-pointer hover:text-lifewood-saffron transition-colors" />
+
+            <button
+              onClick={() => onNavigate(Page.CONTACT)}
+              className="mt-4 text-left text-xl font-medium leading-none text-lifewood-paper transition-colors hover:text-lifewood-saffron sm:text-2xl"
+            >
+              Contact Us
+            </button>
+
+          </div>
+
+          <div className="w-full max-w-sm">
+            <p className="mb-2 text-left text-[11px] uppercase tracking-wide text-lifewood-paper/80 lg:text-right">Find Us On</p>
+            <div className="flex flex-wrap justify-start gap-x-4 gap-y-2 lg:justify-end">
+              {socialItems.map(({ label, icon: Icon, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex min-w-[64px] flex-col items-center gap-1 text-lifewood-paper transition-colors hover:text-lifewood-saffron"
+                >
+                  <Icon className="h-4 w-4 stroke-[1.75]" />
+                  <span className="text-[10px] sm:text-xs">{label}</span>
+                </a>
+              ))}
             </div>
-          </div>
 
-          <div>
-            <h4 className="text-lifewood-saffron uppercase tracking-widest text-xs font-bold mb-6">Solutions</h4>
-            <ul className="space-y-3 text-sm text-lifewood-paper/80">
-              <li className="hover:text-white cursor-pointer transition-colors">Data Processing</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Generative AI</li>
-              <li className="hover:text-white cursor-pointer transition-colors">IVA Development</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Data Library</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-lifewood-saffron uppercase tracking-widest text-xs font-bold mb-6">Company</h4>
-            <ul className="space-y-3 text-sm text-lifewood-paper/80">
-              <li className="hover:text-white cursor-pointer transition-colors">About Us</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Careers</li>
-              <li className="hover:text-white cursor-pointer transition-colors">ESG Impact</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Investor Relations</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-lifewood-saffron uppercase tracking-widest text-xs font-bold mb-6">Contact</h4>
-            <div className="space-y-4 text-sm text-lifewood-paper/80">
-               <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-lifewood-saffron flex-shrink-0 mt-0.5" />
-                  <p>HQ: Menara Lifewood, Kuala Lumpur,<br/>Malaysia</p>
-               </div>
-               <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-lifewood-saffron flex-shrink-0" />
-                  <p>hello@lifewood.com</p>
-               </div>
+            <div className="mt-3 flex flex-wrap items-center justify-start gap-3 lg:justify-end">
+              <p className="text-xs text-lifewood-paper/95">&copy; {new Date().getFullYear()} Lifewood</p>
+              <button
+                onClick={() => onNavigate(Page.CONTACT)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/40 bg-white px-1 py-1 text-[10px] font-semibold text-[#0b2d1f] shadow-md transition-transform hover:scale-[1.02]"
+              >
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-lifewood-saffron text-lifewood-darkSerpent">
+                  <PhoneCall className="h-3 w-3" />
+                </span>
+                <span className="rounded-full bg-[#0b2d1f] px-2.5 py-1 text-white">Start a call</span>
+              </button>
             </div>
-          </div>
-
-        </div>
-        
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-lifewood-paper/50">
-            © {new Date().getFullYear()} Lifewood Data Solutions. All rights reserved.
-          </p>
-          <div className="flex space-x-6 text-xs text-lifewood-paper/50">
-             <span className="hover:text-white cursor-pointer">Privacy Policy</span>
-             <span className="hover:text-white cursor-pointer">Terms of Service</span>
           </div>
         </div>
       </div>

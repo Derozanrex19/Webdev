@@ -1,12 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
-  CheckCircle2,
   Database,
-  Image as ImageIcon,
-  Mic,
-  Video,
-  FileText,
 } from 'lucide-react';
 import { Page } from '../types';
 import Threads from './Threads';
@@ -109,27 +104,23 @@ const metricAccordionItems: MetricAccordionItem[] = [
 const services = [
   {
     title: 'Audio',
-    description: 'Collection, labelling, voice categorization and intelligent customer support data.',
-    icon: Mic,
-    image: 'https://images.pexels.com/photos/696407/pexels-photo-696407.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+    description: 'Collection, labelling, voice categorization, music categorization, intelligent cs',
+    image: 'https://images.pexels.com/photos/4988132/pexels-photo-4988132.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&dpr=2',
   },
   {
     title: 'Image',
-    description: 'Collection, classification, object detection and image tagging workflows.',
-    icon: ImageIcon,
-    image: 'https://images.pexels.com/photos/7567463/pexels-photo-7567463.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+    description: 'Collection, labelling, classification, audit, object detection and tagging',
+    image: 'https://images.pexels.com/photos/30670962/pexels-photo-30670962.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
   },
   {
     title: 'Video',
-    description: 'Collection, labelling, audit, live broadcast and subtitle generation.',
-    icon: Video,
-    image: 'https://images.pexels.com/photos/6973071/pexels-photo-6973071.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+    description: 'Collection, labelling, audit, live broadcast, subtitle generation',
+    image: 'https://images.pexels.com/photos/28955773/pexels-photo-28955773.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
   },
   {
     title: 'Text',
-    description: 'Collection, transcription, utterance gathering and sentiment analysis.',
-    icon: FileText,
-    image: 'https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg?auto=compress&cs=tinysrgb&w=1200&h=700&dpr=2',
+    description: 'Text collection, labelling, transcription, utterance collection, sentiment analysis',
+    image: 'https://images.pexels.com/photos/5402677/pexels-photo-5402677.jpeg?auto=compress&cs=tinysrgb&w=900&h=1400&dpr=2',
   },
 ];
 
@@ -301,9 +292,15 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="border-y border-lifewood-darkSerpent/10 bg-lifewood-seasalt">
+      <section className="bg-lifewood-paper">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-lifewood-darkSerpent/60">Our Clients And Partners</p>
+          <RevealOnScroll>
+            <p className="text-center text-2xl font-extrabold uppercase tracking-[0.14em] text-lifewood-darkSerpent md:text-4xl">
+              <span className="inline-block transition-transform duration-500 hover:scale-[1.02]">
+                Our Clients And Partners
+              </span>
+            </p>
+          </RevealOnScroll>
           <div className="marquee-wrap mt-6 overflow-hidden bg-transparent py-8 md:py-12">
             <div className="marquee-track flex w-max items-center gap-2 md:gap-4 px-2 md:px-4">
               {marqueePartners.map((partner, index) => (
@@ -321,7 +318,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                       )}`;
                       event.currentTarget.src = fallback;
                     }}
-                    className="h-24 md:h-44 w-auto max-w-[240px] md:max-w-[430px] object-contain transition-transform duration-300 hover:scale-105"
+                    className="h-28 md:h-52 w-auto max-w-[280px] md:max-w-[500px] object-contain transition-transform duration-300 hover:scale-105"
                     style={{
                       filter: 'drop-shadow(0 12px 22px rgba(19,48,32,0.14))',
                       mixBlendMode: 'multiply',
@@ -338,39 +335,79 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         <RevealOnScroll>
           <div className="mb-10 flex items-center gap-3">
             <Database className="h-6 w-6 text-lifewood-castleton" />
-            <h2 className="text-3xl font-bold md:text-4xl">AI Data Services</h2>
+            <h2 className="text-3xl font-bold uppercase md:text-4xl">AI Data Services</h2>
           </div>
           <p className="mb-10 max-w-3xl text-lifewood-darkSerpent/75">
-            No matter the industry, size, or data type involved, our services are built to satisfy AI data processing
-            requirements at enterprise scale.
+            Lifewood offers AI and IT services that enhance decision-making, reduce costs, and improve productivity to
+            optimize organizational performance.
           </p>
         </RevealOnScroll>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {services.map((service, index) => (
-            <RevealOnScroll key={service.title} delay={index * 120}>
-              <div
-                className="group rounded-2xl border border-lifewood-darkSerpent/10 bg-white transition hover:-translate-y-1 hover:border-lifewood-castleton/30 hover:shadow-lg overflow-hidden"
-              >
-                <div className="h-40 relative overflow-hidden">
-                  <img src={service.image} alt={service.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/55 to-transparent"></div>
-                </div>
-                <div className="p-7">
-                  <div className="mb-4 inline-flex rounded-xl bg-lifewood-seasalt p-3 text-lifewood-castleton transition group-hover:bg-lifewood-castleton group-hover:text-white">
-                    <service.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-xl font-bold">{service.title}</h3>
-                  <p className="mt-2 text-sm text-lifewood-darkSerpent/70">{service.description}</p>
-                  <div className="mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-lifewood-castleton">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Enterprise-ready pipeline
-                  </div>
-                </div>
+        <RevealOnScroll delay={60}>
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-12 md:grid-rows-[220px_160px]">
+            <article className="group relative overflow-hidden rounded-xl border border-lifewood-darkSerpent/12 bg-lifewood-darkSerpent md:col-span-9 md:row-span-1">
+              <img
+                src={services[0].image}
+                alt="Audio data services"
+                className="h-full w-full object-cover opacity-75 transition duration-700 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/78 via-lifewood-darkSerpent/30 to-lifewood-darkSerpent/18"></div>
+              <div className="absolute inset-x-0 top-0 flex items-center justify-between px-3 py-2">
+                <h3 className="text-sm font-medium text-white">Audio</h3>
               </div>
-            </RevealOnScroll>
-          ))}
-        </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-lifewood-darkSerpent/78 px-3 py-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                <p className="max-w-xl text-[11px] leading-snug text-white">
+                  {services[0].description}
+                </p>
+              </div>
+            </article>
+
+            <article className="group relative overflow-hidden rounded-xl border border-lifewood-darkSerpent/12 bg-lifewood-darkSerpent md:col-span-3 md:row-span-2">
+              <img
+                src={services[3].image}
+                alt="Text data services"
+                className="h-full w-full object-cover opacity-78 transition duration-700 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/65 via-lifewood-darkSerpent/25 to-lifewood-darkSerpent/10"></div>
+              <h3 className="absolute left-3 top-2 text-sm font-medium text-white">Text</h3>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-lifewood-darkSerpent/78 px-3 py-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                <p className="text-[11px] leading-snug text-white">
+                  {services[3].description}
+                </p>
+              </div>
+            </article>
+
+            <article className="group relative overflow-hidden rounded-xl border border-lifewood-darkSerpent/12 bg-lifewood-darkSerpent md:col-span-3 md:row-span-1">
+              <img
+                src={services[1].image}
+                alt="Image data services"
+                className="h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/62 via-lifewood-darkSerpent/22 to-transparent"></div>
+              <h3 className="absolute left-3 top-2 text-sm font-medium text-white">Image</h3>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-lifewood-darkSerpent/78 px-3 py-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                <p className="text-[11px] leading-snug text-white">
+                  {services[1].description}
+                </p>
+              </div>
+            </article>
+
+            <article className="group relative overflow-hidden rounded-xl border border-lifewood-darkSerpent/12 bg-lifewood-darkSerpent md:col-span-6 md:row-span-1">
+              <img
+                src={services[2].image}
+                alt="Video data services"
+                className="h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/62 via-lifewood-darkSerpent/22 to-transparent"></div>
+              <h3 className="absolute left-3 top-2 text-sm font-medium text-white">Video</h3>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-lifewood-darkSerpent/78 px-3 py-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                <p className="text-[11px] leading-snug text-white">
+                  {services[2].description}
+                </p>
+              </div>
+            </article>
+          </div>
+        </RevealOnScroll>
       </section>
 
       <section className="bg-lifewood-darkSerpent py-16">

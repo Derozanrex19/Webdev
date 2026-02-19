@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Globe2, Handshake, Rocket } from 'lucide-react';
 import ScrollVelocity from './ScrollVelocity';
+import { Page } from '../types';
 
 interface RevealOnScrollProps {
   children: React.ReactNode;
@@ -42,8 +43,8 @@ const RevealOnScroll: React.FC<RevealOnScrollProps> = ({ children, className = '
 };
 
 const countryRows = [
-  'SOUTH AFRICA • NIGERIA • REPUBLIC OF THE CONGO • DEMOCRATIC REPUBLIC OF THE CONGO • GHANA • MADAGASCAR • BENIN • UGANDA • KENYA',
-  'IVORY COAST • EGYPT • ETHIOPIA • NIGER • TANZANIA • NAMIBIA • ZAMBIA • ZIMBABWE • LIBERIA • SIERRA LEONE • BANGLADESH',
+  'SOUTH AFRICA | NIGERIA | REPUBLIC OF THE CONGO | DEMOCRATIC REPUBLIC OF THE CONGO | GHANA | MADAGASCAR | BENIN | UGANDA | KENYA',
+  'IVORY COAST | EGYPT | ETHIOPIA | NIGER | TANZANIA | NAMIBIA | ZAMBIA | ZIMBABWE | LIBERIA | SIERRA LEONE | BANGLADESH',
 ];
 
 const impactLocations: { name: string; coords: [number, number] }[] = [
@@ -69,7 +70,11 @@ const impactLocations: { name: string; coords: [number, number] }[] = [
   { name: 'Bangladesh', coords: [23.8103, 90.4125] },
 ];
 
-const PhilImpact: React.FC = () => {
+interface PhilImpactProps {
+  onNavigate: (page: Page) => void;
+}
+
+const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
 
@@ -152,42 +157,59 @@ const PhilImpact: React.FC = () => {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <RevealOnScroll>
-          <div className="mx-auto max-w-5xl rounded-3xl border border-lifewood-darkSerpent/10 bg-white p-8 text-center shadow-sm md:p-10">
-            <p className="mx-auto max-w-4xl text-xl font-medium leading-relaxed text-lifewood-darkSerpent/80 md:text-2xl">
-              Our vision is of a world where financial investment plays a central role in solving the social and
-              environmental challenges facing the global community, specifically in Africa and the Indian sub-continent.
+          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-gradient-to-br from-white via-lifewood-seasalt to-white p-8 shadow-sm md:p-10">
+            <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-lifewood-saffron/16 blur-2xl"></div>
+            <div className="pointer-events-none absolute -left-10 bottom-0 h-24 w-24 rounded-full bg-lifewood-castleton/12 blur-2xl"></div>
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-lifewood-castleton/20 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-lifewood-castleton">
+              <Globe2 className="h-3.5 w-3.5" />
+              Vision
+            </p>
+            <p className="mx-auto max-w-4xl text-center text-2xl font-semibold leading-snug text-lifewood-darkSerpent md:text-4xl">
+              We believe investment should power social progress and environmental renewal across Africa and the Indian sub-continent.
+            </p>
+            <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-relaxed text-lifewood-darkSerpent/70 md:text-base">
+              Our philanthropy model combines measurable impact, local partnerships, and long-term capability building.
             </p>
           </div>
         </RevealOnScroll>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+      <section className="relative mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <RevealOnScroll>
-          <h2 className="text-center text-3xl font-bold md:text-4xl">Transforming Communities Worldwide</h2>
-          <p className="mx-auto mt-4 max-w-4xl text-center text-base leading-relaxed text-lifewood-darkSerpent/72 md:text-xl">
+          <h2 className="text-3xl font-bold md:text-5xl">Transforming Communities Worldwide</h2>
+          <p className="mt-4 max-w-4xl text-base leading-relaxed text-lifewood-darkSerpent/72 md:text-xl">
             Through purposeful partnerships and sustainable investment, we empower communities across Africa and the
             Indian sub-continent to create lasting economic and social transformation.
           </p>
         </RevealOnScroll>
 
         <RevealOnScroll delay={120}>
-          <div className="mt-6 mb-6 rounded-2xl border border-lifewood-darkSerpent/10 bg-white p-6 md:p-8">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-lifewood-castleton">Impact</p>
-            <p className="mt-2 text-sm leading-relaxed text-lifewood-darkSerpent/75 md:text-base">
-              We combine enterprise capability with intentional social investment so communities can access employment,
-              training, and long-term advancement opportunities.
-            </p>
+          <div className="mb-6 mt-6 overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-white shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_1fr]">
+              <div className="bg-lifewood-darkSerpent p-6 text-white md:p-7">
+                <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-lifewood-saffron">Impact</p>
+                <p className="mt-3 text-3xl font-bold leading-none">Human-Centered</p>
+                <p className="mt-2 text-sm text-white/75">Built for meaningful, lasting outcomes.</p>
+              </div>
+              <div className="p-6 md:p-7">
+                <p className="text-base leading-relaxed text-lifewood-darkSerpent/85 md:text-lg">
+                  We combine enterprise capability with intentional social investment so communities can access
+                  employment, training, and long-term advancement opportunities.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
+                  <span className="rounded-full border border-lifewood-castleton/25 bg-lifewood-seasalt px-3 py-1 text-lifewood-castleton">Jobs</span>
+                  <span className="rounded-full border border-lifewood-castleton/25 bg-lifewood-seasalt px-3 py-1 text-lifewood-castleton">Training</span>
+                  <span className="rounded-full border border-lifewood-castleton/25 bg-lifewood-seasalt px-3 py-1 text-lifewood-castleton">Progress</span>
+                </div>
+              </div>
+            </div>
           </div>
         </RevealOnScroll>
 
         <RevealOnScroll>
           <div className="overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-white shadow-sm">
             <div className="relative h-[440px] overflow-hidden rounded-2xl">
-              <div
-                ref={mapRef}
-                className="h-full w-full"
-                style={{ zIndex: 0 }}
-              ></div>
+              <div ref={mapRef} className="h-full w-full" style={{ zIndex: 0 }}></div>
             </div>
           </div>
         </RevealOnScroll>
@@ -287,7 +309,10 @@ const PhilImpact: React.FC = () => {
             <h2 className="text-3xl font-bold md:text-4xl">Working with new intelligence for a better world.</h2>
             <p className="mt-3 text-sm text-white/80 md:text-base">We provide global Data Engineering Services to enable AI solutions.</p>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-full bg-lifewood-saffron px-6 py-3 font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth">
+          <button
+            onClick={() => onNavigate(Page.CONTACT)}
+            className="inline-flex items-center gap-2 rounded-full bg-lifewood-saffron px-6 py-3 font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
+          >
             Contact Us <ArrowRight className="h-4 w-4" />
           </button>
         </div>

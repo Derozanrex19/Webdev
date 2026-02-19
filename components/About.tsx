@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Eye, Target } from 'lucide-react';
-import ScrollReveal from './ScrollReveal';
+import { Page } from '../types';
 
 interface RevealOnScrollProps {
   children: React.ReactNode;
@@ -102,7 +102,11 @@ const coreValueThemes = [
   },
 ];
 
-const About: React.FC = () => {
+interface AboutProps {
+  onNavigate: (page: Page) => void;
+}
+
+const About: React.FC<AboutProps> = ({ onNavigate }) => {
   const [activeValueIndex, setActiveValueIndex] = useState<number | null>(null);
 
   return (
@@ -120,7 +124,10 @@ const About: React.FC = () => {
                 While we are motivated by business and economic objectives, we remain committed to our core business
                 beliefs that shape our corporate and individual behaviour around the world.
               </p>
-              <button className="mt-8 inline-flex items-center gap-2 rounded-full bg-lifewood-castleton px-6 py-3 text-sm font-bold text-white transition hover:bg-lifewood-darkSerpent">
+              <button
+                onClick={() => onNavigate(Page.CONTACT)}
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-lifewood-castleton px-6 py-3 text-sm font-bold text-white transition hover:bg-lifewood-darkSerpent"
+              >
                 Contact Us <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -143,17 +150,10 @@ const About: React.FC = () => {
           <RevealOnScroll>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-lifewood-castleton">Core Value</p>
             <h2 className="mt-3 text-4xl font-bold">Lets collaborate</h2>
-            <ScrollReveal
-              baseOpacity={0.1}
-              enableBlur
-              baseRotation={3}
-              blurStrength={4}
-              containerClassName="mt-4"
-              textClassName="!text-xl !font-normal !leading-relaxed !text-lifewood-darkSerpent/78"
-            >
+            <p className="mt-4 text-xl font-normal leading-relaxed text-lifewood-darkSerpent/78">
               At Lifewood we empower our company and our clients to realise the transformative power of AI: Bringing big
               data to life, launching new ways of thinking, innovating, learning, and doing.
-            </ScrollReveal>
+            </p>
           </RevealOnScroll>
         </div>
       </section>
