@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Page } from '../types';
 
 type OfferTypeKey = 'A' | 'B' | 'C' | 'D';
@@ -88,26 +88,47 @@ const offerContent: Record<OfferTypeKey, OfferContent> = {
   },
   D: {
     title: 'Type D - AIGC Content',
-    subtitle: 'AI-generated and AI-assisted content production frameworks.',
+    subtitle: 'AIGC localization for market-ready multilingual brand content.',
     objective:
-      'Create scalable content systems for training, testing, and deployment that combine AI generation with editorial control.',
+      'Build culturally aligned, multilingual AIGC pipelines that convert source content into market-specific assets while preserving brand voice, quality, and compliance.',
     features: [
-      'Prompt libraries and synthetic data generation',
-      'Human editorial loops for style and factual integrity',
-      'Structured evaluation datasets for model benchmarking',
-      'Production-ready pipelines for continuous content operations',
+      'Story-first adaptation workflows for regional audience relevance',
+      'Multilingual generation with human editorial calibration',
+      'Market localization for campaign, product, and support content',
+      'QA checkpoints for tone, factuality, and policy-safe publishing',
     ],
     results: [
-      'Faster content throughput with quality guardrails',
-      'Reusable assets for ongoing model iteration',
-      'Lower cost per high-quality content unit',
+      'Faster launch of localized content across global markets',
+      'Higher consistency of message and brand voice across languages',
+      'Lower production effort while maintaining enterprise quality',
     ],
-    image: 'https://images.pexels.com/photos/8438919/pexels-photo-8438919.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    objectiveImage: 'https://images.pexels.com/photos/8438921/pexels-photo-8438921.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    featuresImage: 'https://images.pexels.com/photos/8386433/pexels-photo-8386433.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    resultsImage: 'https://images.pexels.com/photos/8438950/pexels-photo-8438950.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
+    image: 'https://images.pexels.com/photos/7567444/pexels-photo-7567444.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
+    objectiveImage: 'https://images.pexels.com/photos/6476589/pexels-photo-6476589.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
+    featuresImage: 'https://images.pexels.com/photos/7567208/pexels-photo-7567208.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
+    resultsImage: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
   },
 };
+
+const typeDHeroImage =
+  'https://images.pexels.com/photos/8728380/pexels-photo-8728380.jpeg?auto=compress&cs=tinysrgb&w=2000&h=1200&fit=crop&dpr=2';
+
+const typeDApproachImages = [
+  'https://images.pexels.com/photos/8294555/pexels-photo-8294555.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
+  'https://images.pexels.com/photos/8386422/pexels-photo-8386422.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
+  'https://images.pexels.com/photos/7567558/pexels-photo-7567558.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
+];
+
+const typeDMiniCards = [
+  'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
+  'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
+  'https://images.pexels.com/photos/7567435/pexels-photo-7567435.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
+];
+
+const typeDBottomLeftImage =
+  'https://images.pexels.com/photos/3184328/pexels-photo-3184328.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop&dpr=2';
+
+const typeDBottomRightImage =
+  'https://images.pexels.com/photos/7567484/pexels-photo-7567484.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop&dpr=2';
 
 const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   const content = offerContent[type];
@@ -140,9 +161,8 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
     C:
       'Broad-domain multilingual datasets built to improve foundation model versatility and generalized reasoning quality.',
     D:
-      'AI-generated and AI-assisted content operations that combine scalable generation pipelines with editorial control.',
+      'We apply AIGC to transform source material into culturally relevant, multilingual content that is ready for real-world brand and business use.',
   };
-
   const heroHighlights: Record<OfferTypeKey, [string, string]> = {
     A: [
       'Multi-language genealogy documents, newspapers, and archives to facilitate global ancestry research',
@@ -157,8 +177,8 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
       'Safety-filtered multilingual datasets for broader production reliability',
     ],
     D: [
-      'Prompt libraries, synthetic generation workflows, and reusable benchmarking sets',
-      'Human editorial loops for quality, consistency, and factual integrity at scale',
+      'AIGC localization strategy with story continuity across regions',
+      'Multilingual adaptation for 100+ market contexts and audience needs',
     ],
   };
 
@@ -382,65 +402,161 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   const activePanel = panels[activeIndex];
 
   return (
-    <section className="relative overflow-hidden bg-[#efefef]">
+    <section className="relative overflow-hidden bg-lifewood-paper">
       <div className="absolute -right-24 top-6 h-72 w-72 rounded-full bg-lifewood-saffron/10 blur-3xl"></div>
       <div className="absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-lifewood-castleton/10 blur-3xl"></div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 lg:px-8">
-        <div className="mb-12 rounded-[28px] border border-lifewood-darkSerpent/10 bg-lifewood-paper p-6 md:p-8">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center">
-            <div className="lg:col-span-6">
-              <h1 className="text-4xl font-semibold leading-tight text-black md:text-6xl">
-                {heroTitles[type][0]}<br />
-                {heroTitles[type][1]}
-              </h1>
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-lifewood-darkSerpent/88">
-                {heroDescriptions[type]}
-              </p>
-              <button
-                onClick={() => onNavigate(Page.CONTACT)}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-lifewood-castleton bg-lifewood-saffron px-4 py-2 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
-              >
-                Contact Us
-              </button>
-              <div className="mt-10 space-y-1 text-sm text-lifewood-darkSerpent/90">
-                <p>{heroHighlights[type][0]}</p>
-                <p>{heroHighlights[type][1]}</p>
+        <div className="mb-12 rounded-[34px] bg-lifewood-paper p-6 md:p-10">
+          {type === 'D' ? (
+            <div className="space-y-10 animate-[fadeUp_700ms_ease-out]">
+              <div className="max-w-4xl animate-[fadeUp_850ms_ease-out]">
+                <div className="mb-3 inline-flex items-center gap-1.5 text-lifewood-darkSerpent/70">
+                  <span className="h-3 w-3 rounded-full bg-black"></span>
+                  <span className="h-3 w-3 rounded-full border border-black"></span>
+                  <span className="ml-1 block h-px w-24 bg-lifewood-darkSerpent/40"></span>
+                </div>
+                <h1 className="text-[2.2rem] font-semibold leading-tight text-black md:text-[3.7rem]">
+                  AI Generated Content (AIGC)
+                </h1>
+                <p className="mt-5 max-w-5xl text-[1.02rem] leading-relaxed text-lifewood-darkSerpent/78">
+                  Lifewood's early adoption of AI tools has seen the company rapidly evolve the use of AI generated content,
+                  integrated into video production for communication requirements.
+                </p>
+                <button
+                  onClick={() => onNavigate(Page.CONTACT)}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-lifewood-saffron px-4 py-2 text-xs font-bold text-lifewood-darkSerpent"
+                >
+                  Contact Us
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-lifewood-castleton text-white">
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+              </div>
+
+              <div className="overflow-hidden rounded-[30px] border border-lifewood-darkSerpent/10 bg-black shadow-2xl animate-[fadeUp_950ms_ease-out]">
+                <img
+                  src={typeDHeroImage}
+                  alt="AIGC hero visual"
+                  className="h-[300px] w-full object-cover md:h-[420px]"
+                />
               </div>
             </div>
-            <div className="relative h-[340px] overflow-hidden rounded-3xl lg:col-span-6">
-              {heroOrbs[type].map((orb) => (
-                <div
-                  key={orb.key}
-                  className={`${orb.wrapperClass} cursor-grab active:cursor-grabbing`}
-                  style={{
-                    transform: `translate(${orbPositions[orb.key].x}px, ${orbPositions[orb.key].y}px) rotate(${orb.rotation}deg)`,
-                    transition: dragState?.key === orb.key ? 'none' : 'transform 560ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  }}
-                  onPointerDown={(event) => {
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    setDragState({
-                      key: orb.key,
-                      startX: event.clientX,
-                      startY: event.clientY,
-                      baseX: orbPositions[orb.key].x,
-                      baseY: orbPositions[orb.key].y,
-                      moved: false,
-                    });
-                  }}
+          ) : (
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center">
+              <div className="lg:col-span-6">
+                <h1 className="text-5xl font-semibold leading-[0.98] tracking-tight text-black md:text-7xl">
+                  {heroTitles[type][0]}<br />
+                  {heroTitles[type][1]}
+                </h1>
+                <p className="mt-5 max-w-[42rem] text-[1.05rem] leading-[1.58] text-lifewood-darkSerpent/90">
+                  {heroDescriptions[type]}
+                </p>
+                <button
+                  onClick={() => onNavigate(Page.CONTACT)}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-lifewood-castleton bg-lifewood-saffron px-4 py-2 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
                 >
-                  <div
-                    className={`h-full w-full ${orb.shapeClass} ${orb.floatAnim}`}
-                    style={{
-                      backgroundImage: orb.gradient,
-                      boxShadow: orb.shadow,
-                    }}
-                  />
+                  Contact Us
+                </button>
+                <div className="mt-10 space-y-1 text-sm text-lifewood-darkSerpent/90">
+                  <p>{heroHighlights[type][0]}</p>
+                  <p>{heroHighlights[type][1]}</p>
                 </div>
-              ))}
+              </div>
+
+              <div className="relative h-[360px] overflow-hidden lg:col-span-6">
+                {heroOrbs[type].map((orb) => (
+                  <div
+                    key={orb.key}
+                    className={`${orb.wrapperClass} cursor-grab active:cursor-grabbing`}
+                    style={{
+                      transform: `translate(${orbPositions[orb.key].x}px, ${orbPositions[orb.key].y}px) rotate(${orb.rotation}deg)`,
+                      transition: dragState?.key === orb.key ? 'none' : 'transform 560ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                    onPointerDown={(event) => {
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setDragState({
+                        key: orb.key,
+                        startX: event.clientX,
+                        startY: event.clientY,
+                        baseX: orbPositions[orb.key].x,
+                        baseY: orbPositions[orb.key].y,
+                        moved: false,
+                      });
+                    }}
+                  >
+                    <div
+                        className={`h-full w-full ${orb.shapeClass} ${orb.floatAnim}`}
+                        style={{
+                          backgroundImage: orb.gradient,
+                          boxShadow: orb.shadow,
+                        }}
+                      />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+
+        {type === 'D' && (
+          <div className="mb-12 space-y-10 animate-[fadeUp_800ms_ease-out]">
+            <section className="grid grid-cols-1 items-start gap-8 md:grid-cols-12">
+              <article className="md:col-span-4 pt-2">
+                <h2 className="text-xl font-medium text-lifewood-darkSerpent">Our Approach</h2>
+                <p className="mt-2 text-[0.78rem] leading-relaxed text-lifewood-darkSerpent/65">
+                  Our motivation is to express the personality of your brand in a compelling communication style that stands out.
+                </p>
+              </article>
+              <article className="md:col-span-8">
+                <div className="relative mx-auto h-[250px] w-[260px]">
+                  <img src={typeDApproachImages[0]} alt="AIGC stack 1" className="absolute left-[44px] top-0 h-[160px] w-[140px] rotate-[16deg] rounded-sm object-cover shadow-xl" />
+                  <img src={typeDApproachImages[1]} alt="AIGC stack 2" className="absolute left-[14px] top-[22px] h-[170px] w-[150px] -rotate-[2deg] rounded-sm object-cover shadow-xl" />
+                  <img src={typeDApproachImages[2]} alt="AIGC stack 3" className="absolute left-[34px] top-[40px] h-[172px] w-[152px] rounded-sm object-cover shadow-xl" />
+                </div>
+              </article>
+            </section>
+
+            <section className="grid grid-cols-1 items-center gap-8 md:grid-cols-12">
+              <article className="md:col-span-4">
+                <p className="text-sm leading-relaxed text-lifewood-darkSerpent/78">
+                  We use advanced film, video and editing techniques, combined with generative AI, to create cinematic worlds for your videos, advertisements and corporate communications.
+                </p>
+              </article>
+              <article className="md:col-span-8">
+                <div className="grid grid-cols-3 gap-2.5">
+                  {typeDMiniCards.map((src) => (
+                    <div key={src} className="overflow-hidden rounded-md border border-lifewood-darkSerpent/12 bg-white animate-[fadeUp_900ms_ease-out]">
+                      <img src={src} alt="AIGC mini card" className="h-24 w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </section>
+
+            <section className="border-t border-lifewood-darkSerpent/15 pt-7">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+                <div className="md:col-span-8 overflow-hidden rounded-md">
+                  <img src={typeDBottomLeftImage} alt="AIGC culture and language" className="h-[250px] w-full object-cover" />
+                </div>
+                <div className="md:col-span-4 grid grid-cols-[1fr_auto] gap-2">
+                  <div className="overflow-hidden rounded-md">
+                    <img src={typeDBottomRightImage} alt="Multiple languages" className="h-[250px] w-full object-cover" />
+                  </div>
+                  <div className="self-center rounded-md bg-[#ebebeb] px-3 py-4 text-center">
+                    <p className="text-2xl font-extrabold text-lifewood-darkSerpent">100+</p>
+                    <p className="text-[0.66rem] uppercase tracking-[0.1em] text-lifewood-darkSerpent/55">Countries</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <blockquote className="max-w-3xl text-sm leading-relaxed text-lifewood-darkSerpent/85">
+              “We understand that your customers spend hours looking at screens; so finding the one, most important thing,
+              on which to build your message is integral to our approach, as we seek to deliver surprise and originality.”
+            </blockquote>
+          </div>
+        )}
 
         <div className="mt-2">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
@@ -507,9 +623,17 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes imageReveal {
+         imageReveal {
           from { opacity: 0.65; transform: scale(1.04); }
           to { opacity: 1; transform: scale(1); }
+        }
+         fadeUp {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+         mediaZoom {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.045); }
         }
         @keyframes orbFloatA {
           0%, 100% { transform: translateY(0px); }

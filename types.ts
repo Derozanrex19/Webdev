@@ -26,6 +26,7 @@ export enum Page {
   TYPE_D = 'TYPE_D',
   PHIL_IMPACT = 'PHIL_IMPACT',
   PROJECTS = 'PROJECTS',
+  CAREERS = 'CAREERS',
   CONTACT = 'CONTACT',
   IVA = 'IVA', // Intelligent Virtual Assistant
 }

@@ -11,6 +11,7 @@ import Offices from './components/Offices';
 import Projects from './components/Projects';
 import OfferTypePage from './components/OfferTypePage';
 import PhilImpact from './components/PhilImpact';
+import Careers from './components/Careers';
 import { Page } from './types';
 
 const App = () => {
@@ -26,6 +27,7 @@ const App = () => {
       [Page.TYPE_C]: 'type-c',
       [Page.TYPE_D]: 'type-d',
       [Page.PHIL_IMPACT]: 'philanthropy-impact',
+      [Page.CAREERS]: 'careers',
       [Page.CONTACT]: 'contact',
       [Page.IVA]: 'iva',
     }),
@@ -94,6 +96,8 @@ const App = () => {
         return <OfferTypePage type="D" onNavigate={navigateTo} />;
       case Page.PHIL_IMPACT:
         return <PhilImpact onNavigate={navigateTo} />;
+      case Page.CAREERS:
+        return <Careers onNavigate={navigateTo} />;
       case Page.PROJECTS:
         return <Projects onNavigate={navigateTo} />;
       case Page.ABOUT:

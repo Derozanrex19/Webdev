@@ -49,6 +49,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
       ],
     },
     { label: 'Philanthropy & Impact', page: Page.PHIL_IMPACT },
+    { label: 'Careers', page: Page.CAREERS },
     { label: 'Contact Us', page: Page.CONTACT },
     { label: 'Meet Iva', page: Page.IVA },
   ];
@@ -83,7 +84,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
         <div className="flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex shrink-0 cursor-pointer items-center gap-3" onClick={() => onNavigate(Page.HOME)}>
             <img
-              src="/lifewood-logo-custom.svg"
+              src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png"
               alt="Lifewood"
               className="h-9 w-auto object-contain"
             />

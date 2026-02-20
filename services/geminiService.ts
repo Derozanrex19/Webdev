@@ -1,18 +1,21 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const getIvaResponse = async (
-  userMessage: string, 
+  userMessage: string,
   history: { role: string; text: string }[]
 ): Promise<string> => {
   try {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return "Connection to Lifewood Data Core interrupted. Missing API key configuration.";
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
     const model = 'gemini-3-flash-preview';
-    
-    // Context from Lifewood Brand Guidelines
+
     const systemContext = `
       You are Iva (Intelligent Virtual Assistant), the AI representative for Lifewood.
-      
+
       ABOUT LIFEWOOD:
       - Mission: Develop and deploy cutting-edge AI technologies that solve real-world problems.
       - Vision: To be the global champion in AI data solutions.
@@ -21,12 +24,12 @@ export const getIvaResponse = async (
       - Locations: Headquarters in Malaysia (Kuala Lumpur), offices in China, Singapore, Bangladesh.
       - Role: A super-bridge connecting ASEAN and China.
       - Services: Data Processing, Data Library, AI Model Training, ESG-focused employment.
-      
+
       YOUR TONE:
       - Professional yet innovative.
       - Proactive and tenacious.
       - Concise and technological.
-      
+
       INSTRUCTIONS:
       - Answer questions about Lifewood's services and vision.
       - If asked about pricing, suggest contacting the Sales team via the Contact page.
@@ -35,18 +38,18 @@ export const getIvaResponse = async (
 
     const prompt = `
     History:
-    ${history.map(h => `${h.role}: ${h.text}`).join('\n')}
-    
+    ${history.map((h) => `${h.role}: ${h.text}`).join('\n')}
+
     User: ${userMessage}
-    
+
     Iva:`;
 
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: model,
+      model,
       contents: prompt,
       config: {
         systemInstruction: systemContext,
-      }
+      },
     });
 
     return response.text || "I apologize, I am processing a large data stream. Please try again.";
