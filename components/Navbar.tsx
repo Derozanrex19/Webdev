@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown, Moon, Sun } from 'lucide-react';
 import { Page } from '../types';
 
 interface NavbarProps {
@@ -7,6 +7,8 @@ interface NavbarProps {
   onNavigate: (page: Page) => void;
   isAuthenticated?: boolean;
   onLogout?: () => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
 }
 
 interface NavChildItem {
@@ -20,7 +22,14 @@ interface NavItem {
   children?: NavChildItem[];
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticated = false, onLogout }) => {
+const Navbar: React.FC<NavbarProps> = ({
+  currentPage,
+  onNavigate,
+  isAuthenticated = false,
+  onLogout,
+  isDarkMode = false,
+  onToggleTheme,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -53,7 +62,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticate
     { label: 'Philanthropy & Impact', page: Page.PHIL_IMPACT },
     { label: 'Careers', page: Page.CAREERS },
     { label: 'Contact Us', page: Page.CONTACT },
-    { label: 'Meet Iva', page: Page.IVA },
   ];
 
   const isItemActive = (item: NavItem) => {
@@ -86,7 +94,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticate
             <img
               src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png"
               alt="Lifewood"
-              className="h-9 w-auto object-contain"
+              className="brand-logo h-9 w-auto object-contain"
             />
           </div>
 
@@ -183,9 +191,23 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticate
                 Log In
               </button>
             )}
+            <button
+              onClick={onToggleTheme}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-lifewood-darkSerpent/20 text-lifewood-darkSerpent transition hover:bg-white/70"
+            >
+              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
           </div>
 
-          <div className="flex items-center lg:hidden">
+          <div className="flex items-center gap-1 lg:hidden">
+            <button
+              onClick={onToggleTheme}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="rounded-full p-2 text-lifewood-darkSerpent hover:bg-white/70"
+            >
+              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="rounded-full p-2 text-lifewood-darkSerpent hover:bg-white/70"
@@ -277,6 +299,15 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticate
                 Log In
               </button>
             )}
+            <button
+              onClick={() => {
+                onToggleTheme?.();
+                setIsMenuOpen(false);
+              }}
+              className="block w-full rounded-xl px-3 py-2 text-left text-base font-semibold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
+            >
+              {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            </button>
           </div>
         </div>
       )}

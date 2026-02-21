@@ -24,13 +24,13 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
   const loopB = [...traits.slice(4), ...traits.slice(0, 4), ...traits.slice(4), ...traits.slice(0, 4)];
 
   return (
-    <section className="relative overflow-hidden bg-[#f3f3f3] pb-16 pt-14">
+    <section className="careers-page relative overflow-hidden bg-[#f3f3f3] pb-16 pt-14">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(255,179,71,0.10),transparent_38%),radial-gradient(circle_at_86%_76%,rgba(4,98,65,0.08),transparent_34%)]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <header className="grid grid-cols-1 gap-10 pt-2 md:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
           <div className="animate-[fadeUp_700ms_ease-out]">
-            <h1 className="max-w-xl text-5xl font-bold leading-[0.95] tracking-[-0.03em] text-black sm:text-6xl md:text-7xl">
+            <h1 className="careers-title max-w-xl text-5xl font-bold leading-[0.95] tracking-[-0.03em] text-black sm:text-6xl md:text-7xl">
               Careers in Lifewood
             </h1>
 
@@ -38,7 +38,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
               href="https://application-form-ph.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-8 inline-flex h-12 items-stretch overflow-hidden rounded-full border border-[#de9f31] bg-lifewood-saffron text-lifewood-darkSerpent transition hover:brightness-95"
+              className="careers-cta mt-8 inline-flex h-12 items-stretch overflow-hidden rounded-full border border-[#de9f31] bg-lifewood-saffron text-lifewood-darkSerpent transition hover:brightness-95"
             >
               <span className="inline-flex items-center px-6 text-[1.65rem] font-bold leading-none">Join Us</span>
               <span className="w-px bg-[#cf8d22]" />
@@ -48,7 +48,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
             </a>
           </div>
 
-          <p className="animate-[fadeUp_860ms_ease-out] text-2xl leading-[1.45] text-black/88 sm:text-[1.9rem] lg:pb-2">
+          <p className="careers-lead animate-[fadeUp_860ms_ease-out] text-2xl leading-[1.45] text-black/88 sm:text-[1.9rem] lg:pb-2">
             Innovation, adaptability, and rapid service evolution separate organizations that consistently deliver at the highest level.
           </p>
         </header>
@@ -88,11 +88,11 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
       </section>
 
       <section className="relative z-10 mx-auto mt-20 max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-        <p className="animate-[fadeUp_960ms_ease-out] text-[2rem] leading-[1.3] tracking-[-0.02em] text-black md:text-[3.3rem]">
+        <p className="careers-quote animate-[fadeUp_960ms_ease-out] text-[2rem] leading-[1.3] tracking-[-0.02em] text-black md:text-[3.3rem]">
           If you&apos;re ready to turn the page on a new chapter in your career, connect with us today. At Lifewood,
           the adventure is always ahead.
         </p>
-        <p className="mt-4 animate-[fadeUp_1050ms_ease-out] text-lg text-black/65 md:text-2xl">&quot;Always on, never off.&quot;</p>
+        <p className="careers-tagline mt-4 animate-[fadeUp_1050ms_ease-out] text-lg text-black/65 md:text-2xl">&quot;Always on, never off.&quot;</p>
       </section>
 
       <section className="relative z-10 mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -103,7 +103,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
           </p>
           <button
             onClick={() => onNavigate(Page.CONTACT)}
-            className="mt-7 inline-flex items-center gap-2 rounded-full bg-lifewood-saffron px-5 py-2.5 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
+            className="careers-contact-btn mt-7 inline-flex items-center gap-2 rounded-full bg-lifewood-saffron px-5 py-2.5 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
           >
             Contact Us
             <ArrowRight className="h-4 w-4" />

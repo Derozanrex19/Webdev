@@ -89,3 +89,159 @@ body,
   top: 5px;
   left: 5px;
 }
+
+:root {
+  color-scheme: light;
+}
+
+.theme-light {
+  color-scheme: light;
+}
+
+.theme-dark {
+  color-scheme: dark;
+  background: #07130f;
+}
+
+.theme-dark .nav-glass-shell {
+  background: linear-gradient(
+      180deg,
+      rgba(26, 47, 39, 0.62) 0%,
+      rgba(16, 30, 24, 0.44) 100%
+    ),
+    rgba(10, 22, 17, 0.42);
+  box-shadow:
+    0 10px 26px rgba(1, 8, 5, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px) saturate(145%) contrast(112%) brightness(0.94);
+  -webkit-backdrop-filter: blur(16px) saturate(145%) contrast(112%) brightness(0.94);
+}
+
+.theme-dark .nav-glass-menu {
+  border-color: rgba(198, 220, 206, 0.25);
+  background: linear-gradient(
+      180deg,
+      rgba(18, 35, 28, 0.95) 0%,
+      rgba(10, 22, 17, 0.94) 100%
+    ),
+    rgba(8, 17, 14, 0.88);
+}
+
+.theme-dark [class*='bg-lifewood-paper'],
+.theme-dark [class*='bg-lifewood-seasalt'],
+.theme-dark [class*='bg-lifewood-white'],
+.theme-dark [class*='bg-white'] {
+  background-color: #0d1b16 !important;
+}
+
+.theme-dark [class*='text-lifewood-darkSerpent'],
+.theme-dark [class*='text-black'] {
+  color: #e7f3eb !important;
+}
+
+.theme-dark [class*='text-lifewood-grey-dark'],
+.theme-dark [class*='text-lifewood-grey-light'],
+.theme-dark [class*='text-gray'] {
+  color: #c3d5cb !important;
+}
+
+.theme-dark [class*='border-lifewood-darkSerpent'],
+.theme-dark [class*='border-lifewood-grey'],
+.theme-dark [class*='border-white'],
+.theme-dark [class*='border-gray'] {
+  border-color: rgba(188, 214, 199, 0.26) !important;
+}
+
+.theme-dark [class*='shadow'] {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+  background: #0f211a !important;
+  color: #edf8f1 !important;
+  border-color: rgba(182, 209, 193, 0.28) !important;
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: #9eb5a8 !important;
+}
+
+.theme-dark img:not(.brand-logo),
+.theme-dark video {
+  filter: brightness(0.88) saturate(0.92) contrast(1.05);
+}
+
+.theme-dark .brand-logo {
+  filter: none !important;
+}
+
+.theme-dark .careers-page {
+  background: #0b1813 !important;
+}
+
+.theme-dark .careers-page .careers-title {
+  color: #edf7f1 !important;
+}
+
+.theme-dark .careers-page .careers-lead {
+  color: #c9ddd1 !important;
+}
+
+.theme-dark .careers-page .careers-quote {
+  color: #e3f0e8 !important;
+}
+
+.theme-dark .careers-page .careers-tagline {
+  color: #a7beb2 !important;
+}
+
+.theme-dark .careers-page .careers-cta,
+.theme-dark .careers-page .careers-contact-btn {
+  color: #133020 !important;
+}
+
+.theme-dark .careers-page .marquee-track span {
+  background: #1a2b23 !important;
+  border-color: rgba(191, 214, 200, 0.34) !important;
+  color: #e5f0e9 !important;
+}
+
+.iva-float-btn {
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: linear-gradient(140deg, rgba(6, 50, 35, 0.9), rgba(12, 87, 57, 0.88));
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+}
+
+.iva-float-btn__icon {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.iva-float-btn__spark {
+  box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.7);
+  animation: ivaPulse 2.4s ease-out infinite;
+}
+
+@keyframes ivaPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 179, 71, 0.52);
+  }
+  70% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 10px rgba(255, 179, 71, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 179, 71, 0);
+  }
+}
+
+.theme-dark .iva-float-btn {
+  border-color: rgba(181, 210, 194, 0.34);
+  background: linear-gradient(140deg, rgba(10, 33, 25, 0.92), rgba(18, 70, 46, 0.9));
+  color: #e8f5ee;
+}

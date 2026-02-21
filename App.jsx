@@ -14,10 +14,12 @@ import PhilImpact from './components/PhilImpact';
 import Careers from './components/Careers';
 import LoginPortal from './components/LoginPortal';
 import InternalDashboard from './components/InternalDashboard';
+import IvaFloatButton from './components/IvaFloatButton';
 import { Page } from './types';
 
 const App = () => {
   const AUTH_KEY = 'lifewood_demo_auth_user';
+  const THEME_KEY = 'lifewood_theme_mode';
   const DEMO_USERNAME = 'test1';
   const DEMO_PASSWORD = '12345678';
 
@@ -62,6 +64,17 @@ const App = () => {
   const isAuthenticated = Boolean(authUser);
 
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      const storedTheme = window.localStorage.getItem(THEME_KEY);
+      if (storedTheme === 'dark' || storedTheme === 'light') return storedTheme;
+    } catch {
+      // ignore storage read errors
+    }
+    return 'light';
+  });
+
+  const isDarkMode = themeMode === 'dark';
 
   const navigateTo = useCallback(
     (page) => {
@@ -124,6 +137,19 @@ const App = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(THEME_KEY, themeMode);
+    } catch {
+      // ignore storage write errors
+    }
+    document.documentElement.setAttribute('data-theme', themeMode);
+  }, [themeMode]);
+
+  const toggleThemeMode = useCallback(() => {
+    setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const renderContent = () => {
     switch (currentPage) {
       case Page.HOME:
@@ -175,7 +201,7 @@ const App = () => {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans text-lifewood-darkSerpent ${
+      className={`${isDarkMode ? 'theme-dark' : 'theme-light'} min-h-screen flex flex-col font-sans text-lifewood-darkSerpent transition-colors duration-300 ${
         currentPage === Page.HOME ? 'bg-lifewood-darkSerpent' : currentPage === Page.INTERNAL ? 'bg-[#0a0f0d]' : 'bg-lifewood-paper'
       }`}
     >
@@ -184,10 +210,15 @@ const App = () => {
         onNavigate={navigateTo}
         isAuthenticated={isAuthenticated}
         onLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleThemeMode}
       />
       <main className="flex-grow">
         {renderContent()}
       </main>
+      {currentPage !== Page.IVA && currentPage !== Page.LOGIN && (
+        <IvaFloatButton onNavigate={navigateTo} />
+      )}
       {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && <Footer onNavigate={navigateTo} />}
     </div>
   );

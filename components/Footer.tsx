@@ -27,7 +27,7 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 <img
                   src="/lifewood-logo-custom.svg"
                   alt="Lifewood"
-                  className="h-8 w-auto object-contain"
+                  className="brand-logo h-8 w-auto object-contain"
                 />
               </button>
             </div>
