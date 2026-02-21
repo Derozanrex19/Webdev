@@ -17,6 +17,8 @@ export interface ChatMessage {
 
 export enum Page {
   HOME = 'HOME',
+  LOGIN = 'LOGIN',
+  INTERNAL = 'INTERNAL',
   ABOUT = 'ABOUT',
   OFFICES = 'OFFICES',
   SERVICES = 'SERVICES',

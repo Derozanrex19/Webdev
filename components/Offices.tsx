@@ -193,7 +193,7 @@ const Offices: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
                 <div className="p-4">
                     <div className="text-4xl font-bold text-lifewood-saffron mb-1">
-                      <CountUp to={56788} separator="," duration={1.1} />
+                      <CountUp to={56788} from={55000} separator="," duration={0.55} />
                     </div>
                     <div className="text-sm uppercase tracking-widest opacity-80">Online Resources</div>
                 </div>

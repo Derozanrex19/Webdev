@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Page } from '../types';
+import VariableProximity from './VariableProximity';
 
 type OfferTypeKey = 'A' | 'B' | 'C' | 'D';
 type OrbKey = 'orbA' | 'orbB' | 'orbC';
@@ -8,6 +9,12 @@ type OrbKey = 'orbA' | 'orbB' | 'orbC';
 interface OfferTypePageProps {
   type: OfferTypeKey;
   onNavigate: (page: Page) => void;
+}
+
+interface RevealOnScrollProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
 }
 
 interface OfferContent {
@@ -24,20 +31,23 @@ interface OfferContent {
 
 const offerContent: Record<OfferTypeKey, OfferContent> = {
   A: {
-    title: 'Type A - Data Service',
-    subtitle: 'Enterprise-grade data collection, processing, and quality operations.',
+    title: 'Type A - Data Servicing',
+    subtitle: 'End-to-end data services specializing in multi-language datasets.',
     objective:
-      'Build high-quality AI-ready datasets with scalable workflows, expert review layers, and measurable quality controls.',
+      'Scan document for preservation, extract data and structure into database.',
     features: [
-      'Managed data collection across text, image, audio, and video',
-      'Human-in-the-loop annotation and validation workflows',
-      'Quality scoring, dispute resolution, and calibration cycles',
-      'Security-first handling for sensitive enterprise datasets',
+      'Auto Crop',
+      'Auto De-skew',
+      'Blur Detection',
+      'Foreign Object Detection',
+      'AI Data Extraction',
     ],
     results: [
-      'Faster dataset readiness for model training',
-      'Higher annotation consistency across large teams',
-      'Reduced rework and lower production overhead',
+      'Accurate and precise data is ensured through validation and quality assurance.',
+      'The system is efficient and scalable, enabling fast and adaptable data extraction.',
+      'It supports multiple languages and formats, allowing the handling of diverse documents.',
+      'Advanced features include auto-crop, de-skew, blur, and object detection.',
+      'With AI integration, the solution provides structured data for AI tools and delivers clear, visual, and easy-to-understand results.',
     ],
     image: 'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
     objectiveImage: 'https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
@@ -45,20 +55,20 @@ const offerContent: Record<OfferTypeKey, OfferContent> = {
     resultsImage: 'https://images.pexels.com/photos/5716032/pexels-photo-5716032.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
   },
   B: {
-    title: 'Type B - Vertical LLM Data',
-    subtitle: 'Domain-specific datasets for expert language intelligence.',
+    title: 'Type B - Horizontal LLM Data',
+    subtitle: 'Comprehensive AI data solutions from data collection and annotation to model testing.',
     objective:
-      'Develop deep, high-fidelity corpora for regulated or specialized industries such as legal, healthcare, and finance.',
+      'Capture and transcribe recordings from native speakers from 23 countries across multiple project types and data domains.',
     features: [
-      'Domain-grounded prompt-response datasets',
-      'Terminology-aligned instruction tuning data',
-      'Expert review pipelines for factual precision',
-      'Evaluation sets mapped to industry use cases',
+      '30,000+ native speaking human resources mobilized across 30+ countries',
+      'Flexible industrial processes with continuous optimization',
+      'Real-time progress tracking using PBI dashboards',
+      'Real-time analysis and quality improvement across collection and transcription',
     ],
     results: [
-      'Improved model reliability in specialized contexts',
-      'Higher factual and terminology accuracy',
-      'More trustworthy enterprise assistants',
+      'Completed voice collection and annotation of 25,400 valid hours',
+      'Delivered on time and with quality within 5 months',
+      'Built scalable multilingual audio datasets for LLM and deep learning workflows',
     ],
     image: 'https://images.pexels.com/photos/7654118/pexels-photo-7654118.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
     objectiveImage: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
@@ -66,20 +76,21 @@ const offerContent: Record<OfferTypeKey, OfferContent> = {
     resultsImage: 'https://images.pexels.com/photos/8438923/pexels-photo-8438923.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
   },
   C: {
-    title: 'Type C - Horizontal LLM Data',
-    subtitle: 'Broad-domain language data for cross-industry foundation models.',
+    title: 'Type C - Vertical LLM Data',
+    subtitle: 'AI data solutions across specific industry verticals including autonomous driving and in-vehicle data collection.',
     objective:
-      'Scale multilingual, cross-domain datasets that improve model versatility and support generalized reasoning tasks.',
+      'Annotate vehicles, pedestrians, and road objects with 2D and 3D techniques to enable accurate object detection for autonomous driving.',
     features: [
-      'Large-scale instruction datasets across diverse domains',
-      'Multilingual and culturally varied data pipelines',
-      'Conversation quality filters and toxicity controls',
-      'Balanced coverage for broad real-world utility',
+      '2D, 3D and 4D data workflows for autonomous driving programs',
+      'Dedicated Process Engineering team for analysis and optimization',
+      'AI-enhanced workflow with multi-level quality checks',
+      'Scalable global delivery through crowdsourced workforce management',
     ],
     results: [
-      'Stronger model generalization',
-      'Better multilingual performance',
-      'Safer, more consistent output quality',
+      'Achieved 25% production in Month 1 with 95% accuracy (Target: 90%)',
+      'Reached 50% production in Month 2 with 99% accuracy (Target: 95%)',
+      'Maintained 99% overall accuracy with on-time delivery',
+      'Expanded operations to Malaysia (100 annotators) and Indonesia (150 annotators)',
     ],
     image: 'https://images.pexels.com/photos/6476589/pexels-photo-6476589.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
     objectiveImage: 'https://images.pexels.com/photos/577585/pexels-photo-577585.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
@@ -102,36 +113,94 @@ const offerContent: Record<OfferTypeKey, OfferContent> = {
       'Higher consistency of message and brand voice across languages',
       'Lower production effort while maintaining enterprise quality',
     ],
-    image: 'https://images.pexels.com/photos/7567444/pexels-photo-7567444.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    objectiveImage: 'https://images.pexels.com/photos/6476589/pexels-photo-6476589.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    featuresImage: 'https://images.pexels.com/photos/7567208/pexels-photo-7567208.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
-    resultsImage: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop&dpr=2',
+    image: '/aigc/bottom-left.jpg',
+    objectiveImage: '/aigc/approach-1.jpg',
+    featuresImage: '/aigc/approach-2.jpg',
+    resultsImage: '/aigc/approach-3.jpg',
   },
 };
 
-const typeDHeroImage =
-  'https://images.pexels.com/photos/8728380/pexels-photo-8728380.jpeg?auto=compress&cs=tinysrgb&w=2000&h=1200&fit=crop&dpr=2';
-
 const typeDApproachImages = [
-  'https://images.pexels.com/photos/8294555/pexels-photo-8294555.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
-  'https://images.pexels.com/photos/8386422/pexels-photo-8386422.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
-  'https://images.pexels.com/photos/7567558/pexels-photo-7567558.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop&dpr=2',
+  '/aigc/approach-1.jpg',
+  '/aigc/approach-2.jpg',
+  '/aigc/approach-3.jpg',
 ];
 
 const typeDMiniCards = [
-  'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
-  'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
-  'https://images.pexels.com/photos/7567435/pexels-photo-7567435.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop&dpr=2',
+  '/aigc/mini-1.jpg',
+  '/aigc/mini-2.jpg',
+  '/aigc/mini-3.jpg',
 ];
 
 const typeDBottomLeftImage =
-  'https://images.pexels.com/photos/3184328/pexels-photo-3184328.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop&dpr=2';
+  '/aigc/bottom-left.jpg';
 
 const typeDBottomRightImage =
-  'https://images.pexels.com/photos/7567484/pexels-photo-7567484.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop&dpr=2';
+  '/aigc/bottom-right.jpg';
+
+const typeCHeroImage =
+  'https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=2000&h=1200&fit=crop&dpr=2';
+
+const typeCVerticalCards = [
+  {
+    title: 'Autonomous Driving',
+    description: '2D, 3D, and 4D annotations for vehicles, pedestrians, road signs, and lane-level objects.',
+    image:
+      'https://images.pexels.com/photos/3156482/pexels-photo-3156482.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop&dpr=2',
+  },
+  {
+    title: 'Smart Cockpit',
+    description: 'In-vehicle datasets for Driver Monitoring Systems and scenario-driven perception models.',
+    image:
+      'https://images.pexels.com/photos/1042143/pexels-photo-1042143.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop&dpr=2',
+  },
+  {
+    title: 'Enterprise Vertical LLM',
+    description: 'Domain-focused structured datasets for private LLM deployment in regulated operations.',
+    image:
+      'https://images.pexels.com/photos/8438923/pexels-photo-8438923.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop&dpr=2',
+  },
+];
+
+const RevealOnScroll: React.FC<RevealOnScrollProps> = ({ children, className = '', delay = 0 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
+    );
+
+    const current = ref.current;
+    if (current) observer.observe(current);
+    return () => {
+      if (current) observer.unobserve(current);
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-[0.98]'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
 
 const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   const content = offerContent[type];
+  const typeCCapLineOneRef = useRef<HTMLDivElement>(null);
+  const typeCCapLineTwoRef = useRef<HTMLDivElement>(null);
+  const typeDApproachStackRef = useRef<HTMLDivElement>(null);
+  const [typeDScrollShift, setTypeDScrollShift] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [orbPositions, setOrbPositions] = useState({
     orbA: { x: 0, y: 0 },
@@ -148,8 +217,8 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   } | null>(null);
   const heroTitles: Record<OfferTypeKey, [string, string]> = {
     A: ['Type A -', 'Data Servicing'],
-    B: ['Type B -', 'Vertical LLM Data'],
-    C: ['Type C -', 'Horizontal LLM Data'],
+    B: ['Type B -', 'Horizontal LLM Data'],
+    C: ['Type C -', 'Vertical LLM Data'],
     D: ['Type D -', 'AIGC Content'],
   };
 
@@ -157,9 +226,9 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
     A:
       'End-to-end data services specializing in multi-language datasets, including document capture, data collection and preparation, extraction, cleaning, labeling, annotation, quality assurance, and formatting.',
     B:
-      'Domain-specific datasets for expert language intelligence, tuned for regulated and high-precision enterprise environments.',
+      'Comprehensive AI data solutions that cover the entire spectrum from data collection and annotation to model testing, creating multimodal datasets for deep learning and large language models.',
     C:
-      'Broad-domain multilingual datasets built to improve foundation model versatility and generalized reasoning quality.',
+      'AI data solutions across specific industry verticals including autonomous driving data annotation, in-vehicle data collection and specialized data services for industry, enterprise or private LLM.',
     D:
       'We apply AIGC to transform source material into culturally relevant, multilingual content that is ready for real-world brand and business use.',
   };
@@ -169,12 +238,12 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
       'QQ Music of over millions non-Chinese songs and lyrics',
     ],
     B: [
-      'Terminology-aligned training corpora for legal, healthcare, and finance domains',
-      'Expert-validated datasets to improve factual precision and domain trustworthiness',
+      'Voice, image and text for Apple Intelligence',
+      'Provided over 50 language sets',
     ],
     C: [
-      'Cross-domain instruction and conversation data across multiple industries',
-      'Safety-filtered multilingual datasets for broader production reliability',
+      '2D, 3D & 4D Data for Autonomous Driving',
+      'The leading AI company in autonomous vehicle development',
     ],
     D: [
       'AIGC localization strategy with story continuity across regions',
@@ -192,35 +261,39 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
       gradient: string;
       shadow: string;
       floatAnim: string;
+      imageSrc?: string;
     }>
   > = {
     A: [
       {
         key: 'orbA',
-        wrapperClass: 'absolute left-[10%] top-[8%] h-24 w-24',
+        wrapperClass: 'absolute left-[8%] top-[6%] h-24 w-24',
         shapeClass: 'rounded-[44%]',
         rotation: 12,
         gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
         shadow: '0 12px 30px rgba(0,0,0,0.28)',
         floatAnim: 'animate-[orbFloatA_4.8s_ease-in-out_infinite]',
+        imageSrc: '/orbs/1-float-v2.png',
       },
       {
         key: 'orbB',
-        wrapperClass: 'absolute right-[8%] top-[2%] h-28 w-28',
+        wrapperClass: 'absolute right-[6%] top-[0%] h-28 w-28',
         shapeClass: 'rounded-[46%]',
         rotation: -18,
         gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
         shadow: '0 14px 32px rgba(0,0,0,0.28)',
         floatAnim: 'animate-[orbFloatB_5.2s_ease-in-out_infinite]',
+        imageSrc: '/orbs/2-float-v2.png',
       },
       {
         key: 'orbC',
-        wrapperClass: 'absolute bottom-[5%] right-[20%] h-40 w-40',
+        wrapperClass: 'absolute bottom-[2%] right-[16%] h-40 w-40',
         shapeClass: 'rounded-[40%]',
         rotation: 20,
         gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
         shadow: '0 18px 40px rgba(0,0,0,0.34)',
         floatAnim: 'animate-[orbFloatC_5.6s_ease-in-out_infinite]',
+        imageSrc: '/orbs/3-float-v2.png',
       },
     ],
     B: [
@@ -232,6 +305,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
         shadow: '0 12px 30px rgba(0,0,0,0.32)',
         floatAnim: 'animate-[orbFloatA_5s_ease-in-out_infinite]',
+        imageSrc: '/orbs/1-float-v2.png',
       },
       {
         key: 'orbB',
@@ -241,6 +315,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
         shadow: '0 14px 32px rgba(0,0,0,0.32)',
         floatAnim: 'animate-[orbFloatB_5.4s_ease-in-out_infinite]',
+        imageSrc: '/orbs/2-float-v2.png',
       },
       {
         key: 'orbC',
@@ -250,6 +325,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
         shadow: '0 18px 40px rgba(0,0,0,0.34)',
         floatAnim: 'animate-[orbFloatC_5.8s_ease-in-out_infinite]',
+        imageSrc: '/orbs/3-float-v2.png',
       },
     ],
     C: [
@@ -261,6 +337,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 30% 25%, #6a6a6a 0%, #222 46%, #050505 74%, #7a7a7a 100%)',
         shadow: '0 12px 30px rgba(0,0,0,0.32)',
         floatAnim: 'animate-[orbFloatA_4.9s_ease-in-out_infinite]',
+        imageSrc: '/orbs/1-float-v2.png',
       },
       {
         key: 'orbB',
@@ -270,6 +347,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 34% 30%, #666 0%, #232323 46%, #020202 76%, #707070 100%)',
         shadow: '0 14px 32px rgba(0,0,0,0.32)',
         floatAnim: 'animate-[orbFloatB_5.1s_ease-in-out_infinite]',
+        imageSrc: '/orbs/2-float-v2.png',
       },
       {
         key: 'orbC',
@@ -279,6 +357,7 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         gradient: 'radial-gradient(circle at 34% 25%, #8c8c8c 0%, #2b2b2b 40%, #050505 70%, #8d8d8d 100%)',
         shadow: '0 18px 40px rgba(0,0,0,0.34)',
         floatAnim: 'animate-[orbFloatC_5.7s_ease-in-out_infinite]',
+        imageSrc: '/orbs/3-float-v2.png',
       },
     ],
     D: [
@@ -399,6 +478,39 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
     };
   }, [dragState]);
 
+  useEffect(() => {
+    if (type !== 'D') {
+      setTypeDScrollShift(0);
+      return;
+    }
+
+    let frame = 0;
+    const handleScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const stack = typeDApproachStackRef.current;
+        if (!stack) return;
+
+        const rect = stack.getBoundingClientRect();
+        const viewportCenter = window.innerHeight * 0.5;
+        const distanceFromCenter = rect.top + rect.height * 0.5 - viewportCenter;
+        const normalized = Math.max(-1, Math.min(1, distanceFromCenter / window.innerHeight));
+        setTypeDScrollShift(normalized * -20);
+      });
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [type]);
+
   const activePanel = panels[activeIndex];
 
   return (
@@ -406,20 +518,20 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
       <div className="absolute -right-24 top-6 h-72 w-72 rounded-full bg-lifewood-saffron/10 blur-3xl"></div>
       <div className="absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-lifewood-castleton/10 blur-3xl"></div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 lg:px-8">
-        <div className="mb-12 rounded-[34px] bg-lifewood-paper p-6 md:p-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 lg:px-8">
+        <div className={`mb-8 rounded-[34px] p-6 md:p-8 ${type === 'D' ? 'bg-transparent' : 'bg-lifewood-paper'}`}>
           {type === 'D' ? (
-            <div className="space-y-10 animate-[fadeUp_700ms_ease-out]">
-              <div className="max-w-4xl animate-[fadeUp_850ms_ease-out]">
+            <div className="space-y-8 animate-[fadeUp_700ms_ease-out]">
+              <div className="max-w-5xl animate-[fadeUp_850ms_ease-out]">
                 <div className="mb-3 inline-flex items-center gap-1.5 text-lifewood-darkSerpent/70">
                   <span className="h-3 w-3 rounded-full bg-black"></span>
                   <span className="h-3 w-3 rounded-full border border-black"></span>
                   <span className="ml-1 block h-px w-24 bg-lifewood-darkSerpent/40"></span>
                 </div>
-                <h1 className="text-[2.2rem] font-semibold leading-tight text-black md:text-[3.7rem]">
+                <h1 className="text-[2.4rem] font-semibold leading-[0.96] text-black md:text-[4.6rem]">
                   AI Generated Content (AIGC)
                 </h1>
-                <p className="mt-5 max-w-5xl text-[1.02rem] leading-relaxed text-lifewood-darkSerpent/78">
+                <p className="mt-6 max-w-5xl text-[1.04rem] leading-relaxed text-lifewood-darkSerpent/78 md:text-[1.14rem]">
                   Lifewood's early adoption of AI tools has seen the company rapidly evolve the use of AI generated content,
                   integrated into video production for communication requirements.
                 </p>
@@ -434,16 +546,126 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
                 </button>
               </div>
 
-              <div className="overflow-hidden rounded-[30px] border border-lifewood-darkSerpent/10 bg-black shadow-2xl animate-[fadeUp_950ms_ease-out]">
-                <img
-                  src={typeDHeroImage}
-                  alt="AIGC hero visual"
-                  className="h-[300px] w-full object-cover md:h-[420px]"
+              <div className="overflow-hidden rounded-[38px] border border-lifewood-darkSerpent/10 bg-black shadow-2xl animate-[fadeUp_950ms_ease-out]">
+                <video
+                  src="/videos/type-d-hero.mp4"
+                  className="h-[300px] w-full object-cover md:h-[460px] lg:h-[520px]"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  controls={false}
+                  aria-label="AIGC hero visual"
                 />
               </div>
             </div>
+          ) : type === 'C' ? (
+            <div className="space-y-8 font-sans animate-[fadeUp_700ms_ease-out]">
+              <RevealOnScroll>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
+                <div className="lg:col-span-6">
+                  <h1 className="text-5xl font-semibold leading-[0.98] tracking-tight text-black md:text-7xl">
+                    Type C -<br />
+                    Vertical LLM Data
+                  </h1>
+                  <p className="mt-5 max-w-[42rem] text-[1.05rem] leading-[1.58] text-lifewood-darkSerpent/90">
+                    AI data solutions across specific industry verticals including autonomous driving data annotation,
+                    in-vehicle data collection, and specialized data services for industry, enterprise, or private LLM.
+                  </p>
+                  <button
+                    onClick={() => onNavigate(Page.CONTACT)}
+                    className="mt-6 inline-flex items-center gap-2 rounded-xl border border-lifewood-castleton bg-lifewood-saffron px-4 py-2 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-lifewood-earth"
+                  >
+                    Contact Us
+                  </button>
+                  <div className="mt-8 space-y-1 text-sm text-lifewood-darkSerpent/90">
+                    <p>2D, 3D & 4D Data for Autonomous Driving</p>
+                    <p>The leading AI company in autonomous vehicle development</p>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-6">
+                  <div className="group relative overflow-hidden rounded-[28px] border border-lifewood-darkSerpent/10 bg-black shadow-2xl transition-all duration-500 hover:shadow-[0_24px_48px_rgba(19,48,32,0.28)]">
+                    <img
+                      src={typeCHeroImage}
+                      alt="Vertical LLM Data visual"
+                      className="h-[320px] w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.04] md:h-[380px]"
+                    />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-50"></div>
+                  </div>
+                </div>
+                </div>
+              </RevealOnScroll>
+
+              <RevealOnScroll delay={120}>
+                <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {typeCVerticalCards.map((card) => (
+                  <article
+                    key={card.title}
+                    className="group overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-lifewood-castleton/25 hover:shadow-[0_14px_30px_rgba(19,48,32,0.16)]"
+                  >
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className="h-44 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                    />
+                    <div className="p-5">
+                      <h3 className="text-lg font-bold text-lifewood-darkSerpent transition-colors duration-300 group-hover:text-lifewood-castleton">
+                        {card.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-lifewood-darkSerpent/75">{card.description}</p>
+                    </div>
+                  </article>
+                ))}
+                </section>
+              </RevealOnScroll>
+
+              <RevealOnScroll delay={220}>
+                <section className="group rounded-2xl border border-lifewood-darkSerpent/10 bg-lifewood-seasalt p-6 transition-all duration-300 hover:border-lifewood-castleton/25 hover:shadow-[0_12px_28px_rgba(19,48,32,0.12)] md:p-8">
+                <div className="mt-2 text-center">
+                  <div ref={typeCCapLineOneRef} className="hidden md:block">
+                    <h2 className="text-2xl font-bold text-lifewood-darkSerpent transition-transform duration-300 group-hover:scale-[1.01] md:text-5xl md:leading-tight">
+                      <VariableProximity
+                        label="2D, 3D & 4D Data for Autonomous Driving"
+                        fromFontVariationSettings="'wght' 620"
+                        toFontVariationSettings="'wght' 900"
+                        containerRef={typeCCapLineOneRef}
+                        radius={95}
+                        falloff="exponential"
+                      />
+                    </h2>
+                  </div>
+                  <h2 className="text-2xl font-bold text-lifewood-darkSerpent md:hidden">
+                    2D, 3D & 4D Data for Autonomous Driving
+                  </h2>
+
+                  <div ref={typeCCapLineTwoRef} className="mt-1 hidden md:block">
+                    <p className="text-3xl font-semibold leading-tight text-lifewood-darkSerpent/52">
+                      <VariableProximity
+                        label="The leading AI company in autonomous vehicle development"
+                        fromFontVariationSettings="'wght' 420"
+                        toFontVariationSettings="'wght' 760"
+                        containerRef={typeCCapLineTwoRef}
+                        radius={95}
+                        falloff="exponential"
+                      />
+                    </p>
+                  </div>
+                  <p className="mt-1 text-lg font-medium text-lifewood-darkSerpent/62 md:hidden">
+                    The leading AI company in autonomous vehicle development
+                  </p>
+                </div>
+                <p className="mx-auto mt-5 max-w-4xl text-center text-sm leading-relaxed text-lifewood-darkSerpent/78 md:text-base">
+                  Annotate vehicles, pedestrians, and road objects with 2D and 3D techniques to enable accurate object
+                  detection for autonomous driving. Self-driving systems rely on precise visual training to detect,
+                  classify, and respond safely in real-world conditions.
+                </p>
+                </section>
+              </RevealOnScroll>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-6">
                 <h1 className="text-5xl font-semibold leading-[0.98] tracking-tight text-black md:text-7xl">
                   {heroTitles[type][0]}<br />
@@ -486,12 +708,28 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
                     }}
                   >
                     <div
-                        className={`h-full w-full ${orb.shapeClass} ${orb.floatAnim}`}
-                        style={{
-                          backgroundImage: orb.gradient,
-                          boxShadow: orb.shadow,
-                        }}
-                      />
+                      className={`h-full w-full ${orb.shapeClass} ${orb.floatAnim}`}
+                      style={{
+                        boxShadow: orb.shadow,
+                      }}
+                    >
+                      {orb.imageSrc ? (
+                        <img
+                          src={orb.imageSrc}
+                          alt=""
+                          aria-hidden="true"
+                          className="h-full w-full scale-[1.18] select-none object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.28)]"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div
+                          className={`h-full w-full ${orb.shapeClass}`}
+                          style={{
+                            backgroundImage: orb.gradient,
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -500,48 +738,63 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
         </div>
 
         {type === 'D' && (
-          <div className="mb-12 space-y-10 animate-[fadeUp_800ms_ease-out]">
-            <section className="grid grid-cols-1 items-start gap-8 md:grid-cols-12">
-              <article className="md:col-span-4 pt-2">
-                <h2 className="text-xl font-medium text-lifewood-darkSerpent">Our Approach</h2>
-                <p className="mt-2 text-[0.78rem] leading-relaxed text-lifewood-darkSerpent/65">
+          <div className="mb-8 space-y-8 animate-[fadeUp_800ms_ease-out]">
+            <section className="relative grid grid-cols-1 items-start gap-6 overflow-hidden pb-6 md:grid-cols-12 md:pb-10">
+              <article className="md:col-span-5 pt-1">
+                <h2 className="text-[2rem] font-medium leading-tight text-lifewood-darkSerpent">Our Approach</h2>
+                <p className="mt-3 text-sm leading-relaxed text-lifewood-darkSerpent/70 md:text-base">
                   Our motivation is to express the personality of your brand in a compelling communication style that stands out.
                 </p>
               </article>
-              <article className="md:col-span-8">
-                <div className="relative mx-auto h-[250px] w-[260px]">
-                  <img src={typeDApproachImages[0]} alt="AIGC stack 1" className="absolute left-[44px] top-0 h-[160px] w-[140px] rotate-[16deg] rounded-sm object-cover shadow-xl" />
-                  <img src={typeDApproachImages[1]} alt="AIGC stack 2" className="absolute left-[14px] top-[22px] h-[170px] w-[150px] -rotate-[2deg] rounded-sm object-cover shadow-xl" />
-                  <img src={typeDApproachImages[2]} alt="AIGC stack 3" className="absolute left-[34px] top-[40px] h-[172px] w-[152px] rounded-sm object-cover shadow-xl" />
+              <article className="md:col-span-7">
+                <div ref={typeDApproachStackRef} className="relative ml-auto h-[320px] w-[340px] md:h-[390px] md:w-[520px]">
+                  <img
+                    src={typeDApproachImages[0]}
+                    alt="AIGC stack 1"
+                    className="absolute left-[150px] top-0 h-[170px] w-[155px] rounded-sm object-cover shadow-xl transition-transform duration-200 md:left-[250px] md:top-0 md:h-[250px] md:w-[220px]"
+                    style={{ transform: `translateY(${typeDScrollShift * 0.7}px) rotate(12deg)` }}
+                  />
+                  <img
+                    src={typeDApproachImages[1]}
+                    alt="AIGC stack 2"
+                    className="absolute left-[84px] top-[22px] h-[210px] w-[185px] rounded-sm object-cover shadow-xl transition-transform duration-200 md:left-[150px] md:top-[50px] md:h-[280px] md:w-[250px]"
+                    style={{ transform: `translateY(${typeDScrollShift * -0.5}px) rotate(-6deg)` }}
+                  />
+                  <img
+                    src={typeDApproachImages[2]}
+                    alt="AIGC stack 3"
+                    className="absolute left-[52px] top-[54px] h-[224px] w-[198px] rounded-sm object-cover shadow-xl transition-transform duration-200 md:left-[92px] md:top-[92px] md:h-[300px] md:w-[270px]"
+                    style={{ transform: `translateY(${typeDScrollShift * 1.1}px) rotate(4deg)` }}
+                  />
                 </div>
               </article>
             </section>
 
-            <section className="grid grid-cols-1 items-center gap-8 md:grid-cols-12">
-              <article className="md:col-span-4">
-                <p className="text-sm leading-relaxed text-lifewood-darkSerpent/78">
+            <section className="grid grid-cols-1 items-center gap-6 md:grid-cols-12">
+              <article className="md:col-span-5">
+                <p className="text-base leading-relaxed text-lifewood-darkSerpent/78 md:text-[1.2rem]">
                   We use advanced film, video and editing techniques, combined with generative AI, to create cinematic worlds for your videos, advertisements and corporate communications.
                 </p>
               </article>
-              <article className="md:col-span-8">
-                <div className="grid grid-cols-3 gap-2.5">
+              <article className="md:col-span-7">
+                <div className="grid grid-cols-3 gap-3">
                   {typeDMiniCards.map((src) => (
                     <div key={src} className="overflow-hidden rounded-md border border-lifewood-darkSerpent/12 bg-white animate-[fadeUp_900ms_ease-out]">
-                      <img src={src} alt="AIGC mini card" className="h-24 w-full object-cover" />
+                      <img src={src} alt="AIGC mini card" className="h-36 w-full object-cover md:h-44" />
                     </div>
                   ))}
                 </div>
               </article>
             </section>
 
-            <section className="border-t border-lifewood-darkSerpent/15 pt-7">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+            <section className="border-t border-lifewood-darkSerpent/15 pt-5">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
                 <div className="md:col-span-8 overflow-hidden rounded-md">
-                  <img src={typeDBottomLeftImage} alt="AIGC culture and language" className="h-[250px] w-full object-cover" />
+                  <img src={typeDBottomLeftImage} alt="AIGC culture and language" className="h-[280px] w-full object-cover md:h-[330px]" />
                 </div>
                 <div className="md:col-span-4 grid grid-cols-[1fr_auto] gap-2">
                   <div className="overflow-hidden rounded-md">
-                    <img src={typeDBottomRightImage} alt="Multiple languages" className="h-[250px] w-full object-cover" />
+                    <img src={typeDBottomRightImage} alt="Multiple languages" className="h-[280px] w-full object-cover md:h-[330px]" />
                   </div>
                   <div className="self-center rounded-md bg-[#ebebeb] px-3 py-4 text-center">
                     <p className="text-2xl font-extrabold text-lifewood-darkSerpent">100+</p>
@@ -551,15 +804,18 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
               </div>
             </section>
 
-            <blockquote className="max-w-3xl text-sm leading-relaxed text-lifewood-darkSerpent/85">
-              “We understand that your customers spend hours looking at screens; so finding the one, most important thing,
-              on which to build your message is integral to our approach, as we seek to deliver surprise and originality.”
+            <blockquote className="mx-auto max-w-6xl py-10 text-center md:py-14">
+              <p className="mx-auto max-w-5xl text-balance text-[1.65rem] leading-[1.34] text-lifewood-darkSerpent md:text-[1.95rem]">
+                “We understand that your customers spend hours looking at screens: so finding the one, most important thing,
+                on which to build your message is integral to our approach, as we seek to deliver surprise and originality.”
+              </p>
+              <p className="mt-4 text-[1.6rem] leading-none text-lifewood-darkSerpent/55">- Lifewood -</p>
             </blockquote>
           </div>
         )}
 
-        <div className="mt-2">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
+        <div className={type === 'D' ? 'mt-8 md:mt-10' : 'mt-0'}>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-stretch">
             <article className="bg-transparent px-2 py-2 lg:col-span-4 lg:min-h-[360px] lg:pr-6">
               <div key={activePanel.id} className="animate-[fadeSlide_540ms_ease]">
                 <h2 className="text-[1.7rem] font-medium leading-none text-lifewood-darkSerpent md:text-[2rem]">
@@ -623,15 +879,15 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-         imageReveal {
+        @keyframes imageReveal {
           from { opacity: 0.65; transform: scale(1.04); }
           to { opacity: 1; transform: scale(1); }
         }
-         fadeUp {
+        @keyframes fadeUp {
           from { opacity: 0; transform: translateY(18px); }
           to { opacity: 1; transform: translateY(0); }
         }
-         mediaZoom {
+        @keyframes mediaZoom {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.045); }
         }

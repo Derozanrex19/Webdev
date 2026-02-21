@@ -1,20 +1,44 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Lifewood AI Data Solutions
 
-# Run and deploy your AI Studio app
+Single-command local setup for both Windows PC and macOS (including Big Sur 11.7).
 
-This contains everything you need to run your app locally.
+## Requirements
 
-View your app in AI Studio: https://ai.studio/apps/drive/1GE_GApW0eHc63k_JEXGcscc6QLotjAIs
+- Node.js 18+ (Node 18 LTS recommended, especially for macOS Big Sur 11.7)
+- npm (bundled with Node)
 
-## Run Locally
+Pinned Node version files are included:
+- `.nvmrc`
+- `.node-version`
 
-**Prerequisites:**  Node.js
+## Quick Start (one command)
 
+```bash
+npm run go
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+What `npm run go` does automatically:
+1. Verifies Node version compatibility.
+2. Installs dependencies with `npm ci` if `node_modules` is missing.
+3. Creates `.env.local` from `.env.example` if missing.
+4. Starts Vite dev server on `http://127.0.0.1:5173`.
+
+## Optional Gemini Setup
+
+Set your API key in `.env.local`:
+
+```env
+GEMINI_API_KEY=your_key_here
+```
+
+If omitted, the app still runs; IVA chat returns a configuration message.
+
+## Utility Commands
+
+```bash
+npm run setup   # Setup only (no dev server)
+npm run doctor  # Environment diagnostics
+npm run dev     # Start dev server directly
+npm run build   # Production build
+npm run preview # Preview production build
+```

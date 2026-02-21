@@ -1,0 +1,91 @@
+/* Global base styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+.nav-glass-shell {
+  border: 0;
+  background: linear-gradient(
+      180deg,
+      rgba(248, 250, 246, 0.42) 0%,
+      rgba(238, 243, 236, 0.24) 100%
+    ),
+    rgba(244, 248, 241, 0.12);
+  box-shadow:
+    0 10px 24px rgba(8, 32, 24, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px) saturate(165%) contrast(120%) brightness(1.16);
+  -webkit-backdrop-filter: blur(16px) saturate(165%) contrast(120%) brightness(1.16);
+}
+
+.nav-glass-shell::before {
+  content: none;
+}
+
+.nav-glass-menu {
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.36) 0%,
+      rgba(255, 255, 255, 0.18) 44%,
+      rgba(255, 255, 255, 0.14) 100%
+    ),
+    rgba(245, 238, 219, 0.16);
+  box-shadow: 0 14px 30px rgba(8, 32, 24, 0.2);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+.lifewood-impact-map .leaflet-tile {
+  filter: saturate(0.72) sepia(0.1) hue-rotate(8deg) brightness(1.03);
+}
+
+.lifewood-impact-map .leaflet-popup-content-wrapper {
+  border: 1px solid rgba(4, 98, 65, 0.22);
+  color: #133020;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(19, 48, 32, 0.16);
+}
+
+.lifewood-impact-map .leaflet-popup-tip {
+  background: #ffffff;
+}
+
+.lifewood-impact-pin {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.lifewood-impact-pin__body {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(160deg, #ffd08e 0%, #ffb347 42%, #f3a127 100%);
+  border: 2px solid #133020;
+  box-shadow:
+    0 7px 14px rgba(19, 48, 32, 0.28),
+    0 0 0 2px rgba(255, 255, 255, 0.8);
+  position: relative;
+}
+
+.lifewood-impact-pin__inner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #046241;
+  top: 5px;
+  left: 5px;
+}

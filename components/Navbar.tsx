@@ -5,6 +5,8 @@ import { Page } from '../types';
 interface NavbarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
+  isAuthenticated?: boolean;
+  onLogout?: () => void;
 }
 
 interface NavChildItem {
@@ -18,7 +20,7 @@ interface NavItem {
   children?: NavChildItem[];
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, isAuthenticated = false, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -76,12 +78,10 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
   return (
     <nav
       ref={navRef}
-      className={`sticky top-0 z-50 px-2 pt-2 md:px-4 md:pt-2 ${
-        currentPage === Page.HOME ? 'bg-lifewood-darkSerpent' : 'bg-transparent'
-      }`}
+      className="sticky top-0 z-50 px-2 pt-2 md:px-4 md:pt-2"
     >
-      <div className="mx-auto max-w-7xl rounded-full border border-white/70 bg-white/60 shadow-[0_12px_30px_rgba(19,48,32,0.10)] backdrop-blur-xl">
-        <div className="flex h-16 items-center justify-between px-4 md:px-6">
+      <div className="nav-glass-shell relative isolate mx-auto max-w-7xl overflow-visible rounded-full">
+        <div className="relative flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex shrink-0 cursor-pointer items-center gap-3" onClick={() => onNavigate(Page.HOME)}>
             <img
               src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png"
@@ -147,6 +147,42 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                 </button>
               );
             })}
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => {
+                    onNavigate(Page.INTERNAL);
+                    setOpenDropdown(null);
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                    currentPage === Page.INTERNAL ? 'text-lifewood-saffron' : 'text-lifewood-darkSerpent hover:bg-white/70'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    onLogout?.();
+                    setOpenDropdown(null);
+                  }}
+                  className="rounded-full border border-lifewood-darkSerpent/20 px-3 py-1.5 text-sm font-semibold text-lifewood-darkSerpent transition hover:bg-white/70"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  onNavigate(Page.LOGIN);
+                  setOpenDropdown(null);
+                }}
+                className={`rounded-full border border-lifewood-darkSerpent/20 px-3 py-1.5 text-sm font-semibold transition ${
+                  currentPage === Page.LOGIN ? 'bg-white/70 text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-white/70'
+                }`}
+              >
+                Log In
+              </button>
+            )}
           </div>
 
           <div className="flex items-center lg:hidden">
@@ -161,7 +197,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
       </div>
 
       {isMenuOpen && (
-        <div className="mx-auto mt-3 max-w-7xl rounded-3xl border border-white/70 bg-white/75 p-4 shadow-xl backdrop-blur-xl lg:hidden">
+        <div className="nav-glass-menu mx-auto mt-3 max-w-7xl rounded-3xl p-4 lg:hidden">
           <div className="space-y-2">
             {navItems.map((item) => {
               if (item.children) {
@@ -205,6 +241,42 @@ const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                 </button>
               );
             })}
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={() => {
+                    onNavigate(Page.INTERNAL);
+                    setIsMenuOpen(false);
+                  }}
+                  className={`block w-full rounded-xl px-3 py-2 text-left text-base font-semibold transition ${
+                    currentPage === Page.INTERNAL ? 'bg-lifewood-seasalt text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-lifewood-seasalt'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    onLogout?.();
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full rounded-xl px-3 py-2 text-left text-base font-semibold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  onNavigate(Page.LOGIN);
+                  setIsMenuOpen(false);
+                }}
+                className={`block w-full rounded-xl px-3 py-2 text-left text-base font-semibold transition ${
+                  currentPage === Page.LOGIN ? 'bg-lifewood-seasalt text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-lifewood-seasalt'
+                }`}
+              >
+                Log In
+              </button>
+            )}
           </div>
         </div>
       )}

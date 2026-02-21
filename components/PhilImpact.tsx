@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Globe2, Handshake, Rocket } from 'lucide-react';
+import { ArrowRight, Globe2 } from 'lucide-react';
 import ScrollVelocity from './ScrollVelocity';
 import { Page } from '../types';
 
@@ -70,6 +70,36 @@ const impactLocations: { name: string; coords: [number, number] }[] = [
   { name: 'Bangladesh', coords: [23.8103, 90.4125] },
 ];
 
+const impactProgramRows = [
+  {
+    title: 'Partnership',
+    description:
+      'In partnership with philanthropic organizations, Lifewood has expanded operations across South Africa, Nigeria, Republic of the Congo, Democratic Republic of the Congo, Ghana, Madagascar, Benin, Uganda, Kenya, Ivory Coast, Egypt, Ethiopia, Niger, Tanzania, Namibia, Zambia, Zimbabwe, Liberia, Sierra Leone, and Bangladesh.',
+    image:
+      'https://images.pexels.com/photos/7092613/pexels-photo-7092613.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    alt: 'Partnership program participants',
+    reverse: false,
+  },
+  {
+    title: 'Application',
+    description:
+      'This requires the application of our methods and experience for the development of people in under-resourced economies.',
+    image:
+      'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    alt: 'Application and training activity',
+    reverse: true,
+  },
+  {
+    title: 'Expanding',
+    description:
+      'We are expanding access to training, equitable wage structures, and career progression to create sustainable long-term benefit for everyone.',
+    image:
+      'https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2',
+    alt: 'Expanding community impact',
+    reverse: false,
+  },
+];
+
 interface PhilImpactProps {
   onNavigate: (page: Page) => void;
 }
@@ -92,18 +122,28 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
       }
 
       const L = (window as any).L;
-      mapInstance.current = L.map(mapRef.current, { zoomControl: true, worldCopyJump: true }).setView([2, 22], 3);
+      mapInstance.current = L.map(mapRef.current, {
+        zoomControl: true,
+        worldCopyJump: false,
+        minZoom: 2,
+      }).setView([4, 18], 3);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; CARTO',
         maxZoom: 19,
       }).addTo(mapInstance.current);
 
       const markerIcon = L.divIcon({
         className: 'lifewood-impact-pin',
-        html: `<span style="display:block;width:12px;height:12px;border-radius:9999px;background:#ffb347;border:2px solid #133020;box-shadow:0 0 0 2px rgba(255,255,255,0.65);"></span>`,
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
+        html: `
+          <span class="lifewood-impact-pin__body">
+            <span class="lifewood-impact-pin__inner"></span>
+          </span>
+        `,
+        iconSize: [24, 34],
+        iconAnchor: [12, 32],
+        popupAnchor: [0, -28],
       });
 
       impactLocations.forEach((location) => {
@@ -113,13 +153,22 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
       });
 
       const bounds = L.latLngBounds(impactLocations.map((location) => location.coords));
-      mapInstance.current.fitBounds(bounds, { padding: [35, 35], maxZoom: 4 });
+      const applyImpactViewport = () => {
+        if (!mapInstance.current) return;
+        mapInstance.current.fitBounds(bounds, { padding: [55, 45], maxZoom: 4 });
+      };
 
-      window.setTimeout(() => {
+      applyImpactViewport();
+
+      const refreshViewport = () => {
         if (!mapInstance.current) return;
         mapInstance.current.invalidateSize();
-        mapInstance.current.fitBounds(bounds, { padding: [35, 35], maxZoom: 4 });
-      }, 250);
+        applyImpactViewport();
+      };
+
+      window.setTimeout(refreshViewport, 250);
+      window.setTimeout(refreshViewport, 800);
+      window.setTimeout(refreshViewport, 1400);
     };
 
     initMap();
@@ -207,7 +256,7 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
         </RevealOnScroll>
 
         <RevealOnScroll>
-          <div className="overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-white shadow-sm lifewood-impact-map">
             <div className="relative h-[440px] overflow-hidden rounded-2xl">
               <div ref={mapRef} className="h-full w-full" style={{ zIndex: 0 }}></div>
             </div>
@@ -215,68 +264,44 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
         </RevealOnScroll>
       </section>
 
-      <section className="bg-white py-14">
+      <section className="bg-white py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <RevealOnScroll delay={80}>
-              <article className="h-full overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg">
-                <img
-                  src="https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2"
-                  alt="Partnerships"
-                  className="h-44 w-full object-cover"
-                />
-                <div className="p-7">
-                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-lifewood-seasalt">
-                    <Handshake className="h-5 w-5 text-lifewood-castleton" />
-                  </div>
-                  <h3 className="text-xl font-bold">Partnership Application</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-lifewood-darkSerpent/75">
-                    In partnership with philanthropic organizations, Lifewood continues to expand operations across Africa
-                    and the Indian sub-continent.
-                  </p>
-                </div>
-              </article>
-            </RevealOnScroll>
-
-            <RevealOnScroll delay={160}>
-              <article className="h-full overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg">
-                <img
-                  src="https://images.pexels.com/photos/3184328/pexels-photo-3184328.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2"
-                  alt="Application"
-                  className="h-44 w-full object-cover"
-                />
-                <div className="p-7">
-                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-lifewood-seasalt">
-                    <Rocket className="h-5 w-5 text-lifewood-castleton" />
-                  </div>
-                  <h3 className="text-xl font-bold">Application</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-lifewood-darkSerpent/75">
-                    This requires the application of our methods and operational experience for the development of people
-                    in under-resourced economies.
-                  </p>
-                </div>
-              </article>
-            </RevealOnScroll>
-
-            <RevealOnScroll delay={240}>
-              <article className="h-full overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg">
-                <img
-                  src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&dpr=2"
-                  alt="Expanding"
-                  className="h-44 w-full object-cover"
-                />
-                <div className="p-7">
-                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-lifewood-seasalt">
-                    <Globe2 className="h-5 w-5 text-lifewood-castleton" />
-                  </div>
-                  <h3 className="text-xl font-bold">Expanding</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-lifewood-darkSerpent/75">
-                    We are expanding access to training, equitable wage structures, and career progression to create
-                    sustainable change for long-term community benefit.
-                  </p>
-                </div>
-              </article>
-            </RevealOnScroll>
+          <div className="overflow-hidden rounded-2xl border border-lifewood-darkSerpent/12">
+            {impactProgramRows.map((row, index) => (
+              <RevealOnScroll delay={80 + index * 80} key={row.title}>
+                <article
+                  className={`grid grid-cols-1 items-center gap-5 bg-white px-5 py-6 md:grid-cols-12 md:gap-7 md:px-8 ${
+                    index > 0 ? 'border-t border-lifewood-darkSerpent/12' : ''
+                  }`}
+                >
+                  {row.reverse ? (
+                    <>
+                      <div className="md:col-span-4">
+                        <img src={row.image} alt={row.alt} className="h-36 w-full rounded-md object-cover md:h-40" />
+                      </div>
+                      <div className="md:col-span-5">
+                        <p className="text-sm leading-relaxed text-lifewood-darkSerpent/74 md:text-[0.95rem]">{row.description}</p>
+                      </div>
+                      <div className="md:col-span-3 md:text-right">
+                        <h3 className="text-2xl font-semibold leading-none">{row.title}</h3>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="md:col-span-2">
+                        <h3 className="text-2xl font-semibold leading-none">{row.title}</h3>
+                      </div>
+                      <div className="md:col-span-5">
+                        <p className="text-sm leading-relaxed text-lifewood-darkSerpent/74 md:text-[0.95rem]">{row.description}</p>
+                      </div>
+                      <div className="md:col-span-5">
+                        <img src={row.image} alt={row.alt} className="h-36 w-full rounded-md object-cover md:h-40" />
+                      </div>
+                    </>
+                  )}
+                </article>
+              </RevealOnScroll>
+            ))}
           </div>
         </div>
       </section>

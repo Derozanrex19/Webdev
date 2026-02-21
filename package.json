@@ -4,9 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": ">=18 <21"
+    "node": ">=18"
   },
   "scripts": {
+    "go": "node scripts/go.mjs",
+    "setup": "node scripts/go.mjs --setup-only",
+    "doctor": "node scripts/go.mjs --doctor-only",
     "dev": "vite --host 127.0.0.1 --port 5173",
     "dev:mac": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vite build",
@@ -20,6 +23,7 @@
     "ogl": "^1.0.11",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-icons": "^5.5.0",
     "three": "^0.181.2"
   },
   "devDependencies": {

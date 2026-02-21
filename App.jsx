@@ -12,12 +12,20 @@ import Projects from './components/Projects';
 import OfferTypePage from './components/OfferTypePage';
 import PhilImpact from './components/PhilImpact';
 import Careers from './components/Careers';
+import LoginPortal from './components/LoginPortal';
+import InternalDashboard from './components/InternalDashboard';
 import { Page } from './types';
 
 const App = () => {
+  const AUTH_KEY = 'lifewood_demo_auth_user';
+  const DEMO_USERNAME = 'test1';
+  const DEMO_PASSWORD = '12345678';
+
   const pageToHash = useMemo(
     () => ({
       [Page.HOME]: 'home',
+      [Page.LOGIN]: 'login',
+      [Page.INTERNAL]: 'internal',
       [Page.SERVICES]: 'ai-data-services',
       [Page.PROJECTS]: 'ai-projects',
       [Page.ABOUT]: 'about',
@@ -44,10 +52,22 @@ const App = () => {
     return hashToPage.get(normalizedHash) || Page.HOME;
   }, [hashToPage]);
 
+  const [authUser, setAuthUser] = useState(() => {
+    try {
+      return window.localStorage.getItem(AUTH_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const isAuthenticated = Boolean(authUser);
+
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
 
   const navigateTo = useCallback(
     (page) => {
+      if (page === Page.INTERNAL && !isAuthenticated) {
+        page = Page.LOGIN;
+      }
       setCurrentPage(page);
       const targetHash = pageToHash[page];
       if (!targetHash) return;
@@ -56,8 +76,36 @@ const App = () => {
         window.history.pushState(null, '', `#${targetHash}`);
       }
     },
-    [pageToHash]
+    [isAuthenticated, pageToHash]
   );
+
+  const handleLogin = useCallback(
+    (username, password) => {
+      if (username !== DEMO_USERNAME || password !== DEMO_PASSWORD) {
+        return { ok: false, error: 'Invalid username or password.' };
+      }
+
+      try {
+        window.localStorage.setItem(AUTH_KEY, DEMO_USERNAME);
+      } catch {
+        // no-op for storage-restricted contexts
+      }
+      setAuthUser(DEMO_USERNAME);
+      navigateTo(Page.INTERNAL);
+      return { ok: true };
+    },
+    [navigateTo]
+  );
+
+  const handleLogout = useCallback(() => {
+    try {
+      window.localStorage.removeItem(AUTH_KEY);
+    } catch {
+      // no-op for storage-restricted contexts
+    }
+    setAuthUser(null);
+    navigateTo(Page.HOME);
+  }, [navigateTo]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -80,6 +128,14 @@ const App = () => {
     switch (currentPage) {
       case Page.HOME:
         return <Home onNavigate={navigateTo} />;
+      case Page.LOGIN:
+        return <LoginPortal onLogin={handleLogin} />;
+      case Page.INTERNAL:
+        return isAuthenticated ? (
+          <InternalDashboard userEmail={authUser || DEMO_USERNAME} onLogout={handleLogout} />
+        ) : (
+          <LoginPortal onLogin={handleLogin} />
+        );
       case Page.SERVICES:
         return (
           <div className="pt-10">
@@ -120,14 +176,19 @@ const App = () => {
   return (
     <div
       className={`min-h-screen flex flex-col font-sans text-lifewood-darkSerpent ${
-        currentPage === Page.HOME ? 'bg-lifewood-darkSerpent' : 'bg-lifewood-paper'
+        currentPage === Page.HOME ? 'bg-lifewood-darkSerpent' : currentPage === Page.INTERNAL ? 'bg-[#0a0f0d]' : 'bg-lifewood-paper'
       }`}
     >
-      <Navbar currentPage={currentPage} onNavigate={navigateTo} />
+      <Navbar
+        currentPage={currentPage}
+        onNavigate={navigateTo}
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
+      />
       <main className="flex-grow">
         {renderContent()}
       </main>
-      <Footer onNavigate={navigateTo} />
+      {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && <Footer onNavigate={navigateTo} />}
     </div>
   );
 };
