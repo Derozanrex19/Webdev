@@ -373,7 +373,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                     loading="lazy"
                     onError={(event) => {
                       const fallback = `data:image/svg+xml;utf8,${encodeURIComponent(
-                        `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='40'><rect width='100%' height='100%' fill='transparent'/><text x='50%' y='52%' dominant-baseline='middle' text-anchor='middle' fill='#4B5563' font-family='Arial, sans-serif' font-size='14' font-weight='700'>${partner.name}</text></svg>`
+                        `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='40'><rect width='100%' height='100%' fill='transparent'/><text x='50%' y='52%' dominant-baseline='middle' text-anchor='middle' fill='#4B5563' font-family='Manrope, sans-serif' font-size='14' font-weight='700'>${partner.name}</text></svg>`
                       )}`;
                       event.currentTarget.src = fallback;
                     }}

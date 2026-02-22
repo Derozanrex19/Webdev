@@ -270,35 +270,59 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
             {impactProgramRows.map((row, index) => (
               <RevealOnScroll delay={80 + index * 80} key={row.title}>
                 <article
-                  className={`grid grid-cols-1 items-center gap-5 bg-white px-5 py-6 md:grid-cols-12 md:gap-7 md:px-8 ${
+                  className={`group relative overflow-hidden bg-white px-5 py-6 transition-all duration-300 ease-out md:px-8 ${
                     index > 0 ? 'border-t border-lifewood-darkSerpent/12' : ''
                   }`}
                 >
-                  {row.reverse ? (
-                    <>
-                      <div className="md:col-span-4">
-                        <img src={row.image} alt={row.alt} className="h-36 w-full rounded-md object-cover md:h-40" />
+                  <div className="flex min-h-[118px] items-center justify-center transition-all duration-300 ease-out group-hover:min-h-[210px] md:min-h-[132px] md:group-hover:min-h-[220px]">
+                    <h3 className="text-center text-2xl font-semibold leading-none transition-all duration-300 ease-out group-hover:opacity-0 group-hover:-translate-y-2">
+                      {row.title}
+                    </h3>
+                  </div>
+
+                  <div className="pointer-events-none absolute inset-x-5 top-1/2 z-10 -translate-y-1/2 opacity-0 transition-all duration-300 ease-out group-hover:pointer-events-auto group-hover:opacity-100 md:inset-x-8">
+                    {row.reverse ? (
+                      <div className="grid grid-cols-1 items-center gap-5 md:grid-cols-12 md:gap-7">
+                        <div className="md:col-span-4">
+                          <div className="overflow-hidden rounded-md">
+                            <img
+                              src={row.image}
+                              alt={row.alt}
+                              className="h-36 w-full scale-[1.04] rounded-md object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-100 group-hover:opacity-100 md:h-40"
+                            />
+                          </div>
+                        </div>
+                        <div className="md:col-span-5">
+                          <p className="translate-y-1 text-sm leading-relaxed text-lifewood-darkSerpent/74 opacity-0 transition-all delay-75 duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 md:text-[0.95rem]">
+                            {row.description}
+                          </p>
+                        </div>
+                        <div className="md:col-span-3 md:text-right">
+                          <h3 className="translate-y-1 text-2xl font-semibold leading-none opacity-0 transition-all delay-100 duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100">{row.title}</h3>
+                        </div>
                       </div>
-                      <div className="md:col-span-5">
-                        <p className="text-sm leading-relaxed text-lifewood-darkSerpent/74 md:text-[0.95rem]">{row.description}</p>
+                    ) : (
+                      <div className="grid grid-cols-1 items-center gap-5 md:grid-cols-12 md:gap-7">
+                        <div className="md:col-span-2">
+                          <h3 className="translate-y-1 text-2xl font-semibold leading-none opacity-0 transition-all delay-100 duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100">{row.title}</h3>
+                        </div>
+                        <div className="md:col-span-5">
+                          <p className="translate-y-1 text-sm leading-relaxed text-lifewood-darkSerpent/74 opacity-0 transition-all delay-75 duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 md:text-[0.95rem]">
+                            {row.description}
+                          </p>
+                        </div>
+                        <div className="md:col-span-5">
+                          <div className="overflow-hidden rounded-md">
+                            <img
+                              src={row.image}
+                              alt={row.alt}
+                              className="h-36 w-full scale-[1.04] rounded-md object-cover opacity-0 transition-all duration-500 ease-out group-hover:scale-100 group-hover:opacity-100 md:h-40"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="md:col-span-3 md:text-right">
-                        <h3 className="text-2xl font-semibold leading-none">{row.title}</h3>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="md:col-span-2">
-                        <h3 className="text-2xl font-semibold leading-none">{row.title}</h3>
-                      </div>
-                      <div className="md:col-span-5">
-                        <p className="text-sm leading-relaxed text-lifewood-darkSerpent/74 md:text-[0.95rem]">{row.description}</p>
-                      </div>
-                      <div className="md:col-span-5">
-                        <img src={row.image} alt={row.alt} className="h-36 w-full rounded-md object-cover md:h-40" />
-                      </div>
-                    </>
-                  )}
+                    )}
+                  </div>
                 </article>
               </RevealOnScroll>
             ))}
