@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Menu, X, ChevronDown, Moon, Sun } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
+import { motion, useMotionValueEvent, useScroll } from 'motion/react';
 import { Page } from '../types';
 
 interface NavbarProps {
@@ -7,8 +8,6 @@ interface NavbarProps {
   onNavigate: (page: Page) => void;
   isAuthenticated?: boolean;
   onLogout?: () => void;
-  isDarkMode?: boolean;
-  onToggleTheme?: () => void;
 }
 
 interface NavChildItem {
@@ -27,12 +26,12 @@ const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   isAuthenticated = false,
   onLogout,
-  isDarkMode = false,
-  onToggleTheme,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isHidden, setIsHidden] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
+  const { scrollY } = useScroll();
 
   const navItems: NavItem[] = [
     { label: 'Home', page: Page.HOME },
@@ -83,10 +82,31 @@ const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  useMotionValueEvent(scrollY, 'change', (current) => {
+    const previous = scrollY.getPrevious() ?? 0;
+    if (isMenuOpen) {
+      setIsHidden(false);
+      return;
+    }
+    if (current > previous && current > 150) {
+      setIsHidden(true);
+    } else {
+      setIsHidden(false);
+    }
+  });
+
   return (
-    <nav
+    <motion.nav
       ref={navRef}
       className="sticky top-0 z-50 px-2 pt-2 md:px-4 md:pt-2"
+      animate={{
+        y: isHidden ? -110 : 0,
+        opacity: isHidden ? 0 : 1,
+      }}
+      transition={{
+        y: { type: 'spring', stiffness: 260, damping: 28, mass: 0.9 },
+        opacity: { duration: 0.22, ease: 'easeOut' },
+      }}
     >
       <div className="nav-glass-shell relative isolate mx-auto max-w-7xl overflow-visible rounded-full">
         <div className="relative flex h-16 items-center justify-between px-4 md:px-6">
@@ -191,23 +211,9 @@ const Navbar: React.FC<NavbarProps> = ({
                 Log In
               </button>
             )}
-            <button
-              onClick={onToggleTheme}
-              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-lifewood-darkSerpent/20 text-lifewood-darkSerpent transition hover:bg-white/70"
-            >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
           </div>
 
           <div className="flex items-center gap-1 lg:hidden">
-            <button
-              onClick={onToggleTheme}
-              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="rounded-full p-2 text-lifewood-darkSerpent hover:bg-white/70"
-            >
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="rounded-full p-2 text-lifewood-darkSerpent hover:bg-white/70"
@@ -219,7 +225,7 @@ const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {isMenuOpen && (
-        <div className="nav-glass-menu mx-auto mt-3 max-w-7xl rounded-3xl p-4 lg:hidden">
+        <div className="nav-glass-menu mx-auto mt-3 max-h-[calc(100dvh-5.5rem)] max-w-7xl overflow-y-auto rounded-3xl p-4 overscroll-contain lg:hidden">
           <div className="space-y-2">
             {navItems.map((item) => {
               if (item.children) {
@@ -299,19 +305,10 @@ const Navbar: React.FC<NavbarProps> = ({
                 Log In
               </button>
             )}
-            <button
-              onClick={() => {
-                onToggleTheme?.();
-                setIsMenuOpen(false);
-              }}
-              className="block w-full rounded-xl px-3 py-2 text-left text-base font-semibold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
-            >
-              {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            </button>
           </div>
         </div>
       )}
-    </nav>
+    </motion.nav>
   );
 };
 

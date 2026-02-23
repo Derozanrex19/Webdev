@@ -98,25 +98,66 @@ const Offices: React.FC = () => {
       }
 
       const L = (window as any).L;
-      mapInstance.current = L.map(mapRef.current, { zoomControl: true, worldCopyJump: true }).setView([20, 15], 2);
+      mapInstance.current = L.map(mapRef.current, {
+        zoomControl: true,
+        worldCopyJump: false,
+        maxBounds: [[-85, -180], [85, 180]],
+        maxBoundsViscosity: 1.0,
+      }).setView([20, 15], 2);
 
       const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
+        noWrap: true,
       });
+      const satelliteLayer = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution:
+            'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+          maxZoom: 19,
+          noWrap: true,
+        }
+      );
+      const hybridImageryLayer = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution:
+            'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+          maxZoom: 19,
+          noWrap: true,
+        }
+      );
+      const hybridLabelsLayer = L.tileLayer(
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        {
+          attribution: 'Labels &copy; Esri',
+          maxZoom: 19,
+          noWrap: true,
+        }
+      );
+      const hybridLayer = L.layerGroup([hybridImageryLayer, hybridLabelsLayer]);
+      const lightGrayLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; CARTO',
+        maxZoom: 19,
+        noWrap: true,
+      });
+
       osmLayer.addTo(mapInstance.current);
 
-      let fallbackApplied = false;
-      osmLayer.on('tileerror', () => {
-        if (fallbackApplied || !mapInstance.current) return;
-        fallbackApplied = true;
-        mapInstance.current.removeLayer(osmLayer);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; CARTO',
-          maxZoom: 19,
-        }).addTo(mapInstance.current);
-      });
+      L.control
+        .layers(
+          {
+            'Map View': osmLayer,
+            'Satellite View': satelliteLayer,
+            'Hybrid View': hybridLayer,
+            'Light Gray View': lightGrayLayer,
+          },
+          undefined,
+          { position: 'topright', collapsed: true }
+        )
+        .addTo(mapInstance.current);
 
       const pinIcon = L.divIcon({
         className: 'lifewood-pin-icon',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Page } from '../types';
+import SplitText from './SplitText';
 
 interface CareersProps {
   onNavigate: (page: Page) => void;
@@ -22,6 +23,9 @@ const traits = [
 const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
   const loopA = [...traits, ...traits, ...traits, ...traits];
   const loopB = [...traits.slice(4), ...traits.slice(0, 4), ...traits.slice(4), ...traits.slice(0, 4)];
+  const handleCareerQuoteAnimationComplete = () => {
+    console.log('Career quote split animation complete');
+  };
 
   return (
     <section className="careers-page relative overflow-hidden bg-[#f3f3f3] pb-16 pt-14">
@@ -88,10 +92,22 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
       </section>
 
       <section className="relative z-10 mx-auto mt-20 max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-        <p className="careers-quote animate-[fadeUp_960ms_ease-out] text-[2rem] leading-[1.3] tracking-[-0.02em] text-black md:text-[3.3rem]">
-          If you&apos;re ready to turn the page on a new chapter in your career, connect with us today. At Lifewood,
-          the adventure is always ahead.
-        </p>
+        <SplitText
+          text="If you're ready to turn the page on a new chapter in your career, connect with us today. At Lifewood, the adventure is always ahead."
+          className="careers-quote text-[2rem] leading-[1.3] tracking-[-0.02em] text-black md:text-[3.3rem]"
+          delay={16}
+          duration={0.8}
+          ease="power3.out"
+          splitType="chars"
+          from={{ opacity: 0, y: 24 }}
+          to={{ opacity: 1, y: 0 }}
+          threshold={0.15}
+          rootMargin="-80px"
+          textAlign="center"
+          tag="p"
+          onLetterAnimationComplete={handleCareerQuoteAnimationComplete}
+          showCallback
+        />
         <p className="careers-tagline mt-4 animate-[fadeUp_1050ms_ease-out] text-lg text-black/65 md:text-2xl">&quot;Always on, never off.&quot;</p>
       </section>
 

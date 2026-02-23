@@ -9,17 +9,19 @@ import {
   CheckCircle2,
   Clock3,
   FileText,
+  Home,
   LogOut,
   Pencil,
   PlayCircle,
   TrendingUp,
   User,
 } from 'lucide-react';
-import LiquidChrome from './LiquidChrome';
+import Balatro from './Balatro';
 
 interface InternalDashboardProps {
   userEmail: string;
   onLogout: () => void;
+  onGoHome: () => void;
 }
 
 type SectionKey = 'dashboard' | 'lessons' | 'reports';
@@ -195,7 +197,7 @@ const lessonTracks: LessonTrack[] = [
   },
 ];
 
-const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogout }) => {
+const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogout, onGoHome }) => {
   const [activeSection, setActiveSection] = useState<SectionKey>('dashboard');
   const [activeLessonTrackIndex, setActiveLessonTrackIndex] = useState(0);
   const [activeLessonModuleIndex, setActiveLessonModuleIndex] = useState(0);
@@ -347,9 +349,22 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
   return (
     <section className="relative z-10 min-h-screen overflow-hidden bg-transparent px-4 py-5 text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 z-0 opacity-45">
-        <LiquidChrome baseColor={[0.07, 0.22, 0.15]} speed={0.24} amplitude={0.42} frequencyX={2.6} frequencyY={2.4} interactive={true} />
+        <Balatro
+          isRotate={false}
+          mouseInteraction={true}
+          pixelFilter={860}
+          color1="#C8FF34"
+          color2="#046241"
+          color3="#0b1f17"
+          contrast={2.25}
+          lighting={0.32}
+          spinAmount={0.18}
+          spinSpeed={4.6}
+          spinRotation={-1.1}
+          spinEase={0.9}
+        />
       </div>
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_12%,rgba(200,255,52,0.12),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(255,179,71,0.1),transparent_36%),linear-gradient(to_bottom,rgba(6,12,10,0.20),rgba(6,12,10,0.44))]"></div>
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_12%,rgba(200,255,52,0.16),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(255,179,71,0.16),transparent_36%),linear-gradient(to_bottom,rgba(4,14,10,0.30),rgba(4,14,10,0.58))]"></div>
 
       <div className="relative z-10 mx-auto grid max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-12">
         <aside className="rounded-3xl border border-white/12 bg-[#0d1512]/92 p-7 backdrop-blur-sm lg:col-span-4 xl:col-span-3" style={{ animation: 'panelRise 560ms ease both' }}>
@@ -380,10 +395,16 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
             </article>
           </div>
 
-          <button onClick={onLogout} className="mt-8 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/10">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/10">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+            <button onClick={onGoHome} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/10">
+              <Home className="h-4 w-4" />
+              Home
+            </button>
+          </div>
         </aside>
 
         <div className="space-y-5 lg:col-span-8 xl:col-span-9">
