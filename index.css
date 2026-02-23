@@ -47,7 +47,7 @@ body,
 }
 
 .lifewood-impact-map .leaflet-tile {
-  filter: saturate(0.72) sepia(0.1) hue-rotate(8deg) brightness(1.03);
+  filter: none;
 }
 
 .lifewood-impact-map .leaflet-popup-content-wrapper {
