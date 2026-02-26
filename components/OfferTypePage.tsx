@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Page } from '../types';
 import VariableProximity from './VariableProximity';
+import PixelTransition from './PixelTransition';
+import ScrollReveal from './ScrollReveal';
 
 type OfferTypeKey = 'A' | 'B' | 'C' | 'D';
 type OrbKey = 'orbA' | 'orbB' | 'orbC';
@@ -201,7 +203,6 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   const typeCCapLineTwoRef = useRef<HTMLDivElement>(null);
   const typeDApproachStackRef = useRef<HTMLDivElement>(null);
   const [typeDScrollShift, setTypeDScrollShift] = useState(0);
-  const [activeIndex, setActiveIndex] = useState(0);
   const [orbPositions, setOrbPositions] = useState({
     orbA: { x: 0, y: 0 },
     orbB: { x: 0, y: 0 },
@@ -419,10 +420,6 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
   ];
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [type]);
-
-  useEffect(() => {
     setOrbPositions({
       orbA: { x: 0, y: 0 },
       orbB: { x: 0, y: 0 },
@@ -510,8 +507,6 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
       window.removeEventListener('resize', handleScroll);
     };
   }, [type]);
-
-  const activePanel = panels[activeIndex];
 
   return (
     <section className="relative overflow-hidden bg-lifewood-paper">
@@ -805,71 +800,106 @@ const OfferTypePage: React.FC<OfferTypePageProps> = ({ type, onNavigate }) => {
             </section>
 
             <blockquote className="mx-auto max-w-6xl py-10 text-center md:py-14">
-              <p className="mx-auto max-w-5xl text-balance text-[1.65rem] leading-[1.34] text-lifewood-darkSerpent md:text-[1.95rem]">
-                “We understand that your customers spend hours looking at screens: so finding the one, most important thing,
-                on which to build your message is integral to our approach, as we seek to deliver surprise and originality.”
-              </p>
+              <ScrollReveal
+                baseOpacity={0.14}
+                enableBlur
+                baseRotation={2}
+                blurStrength={3}
+                containerClassName="mx-auto max-w-5xl"
+                textClassName="text-balance text-[1.65rem] leading-[1.34] text-lifewood-darkSerpent md:text-[1.95rem]"
+                rotationEnd="bottom top+=15%"
+                wordAnimationEnd="bottom top+=15%"
+                scrub={1.1}
+              >
+                {'“We understand that your customers spend hours looking at screens: so finding the one, most important thing, on which to build your message is integral to our approach, as we seek to deliver surprise and originality.”'}
+              </ScrollReveal>
               <p className="mt-4 text-[1.6rem] leading-none text-lifewood-darkSerpent/55">- Lifewood -</p>
             </blockquote>
           </div>
         )}
 
         <div className={type === 'D' ? 'mt-8 md:mt-10' : 'mt-0'}>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-stretch">
-            <article className="bg-transparent px-2 py-2 lg:col-span-4 lg:min-h-[360px] lg:pr-6">
-              <div key={activePanel.id} className="animate-[fadeSlide_540ms_ease]">
-                <h2 className="text-[1.7rem] font-medium leading-none text-lifewood-darkSerpent md:text-[2rem]">
-                  {String(activeIndex + 1).padStart(2, '0')}
-                </h2>
-                <h3 className="mt-1.5 text-[1.3rem] font-bold leading-tight text-lifewood-darkSerpent md:text-[1.55rem]">
-                  {activePanel.title}
-                </h3>
-                <p className="mt-3 text-[0.9rem] leading-[1.5] text-lifewood-darkSerpent/76">{activePanel.summary}</p>
-                {activePanel.list.length > 0 && (
-                  <ul className="mt-3 space-y-1.5">
-                    {activePanel.list.map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-[0.83rem] text-lifewood-darkSerpent/78">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lifewood-castleton/90" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </article>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {panels.map((panel, index) => {
+              const frontThemes = [
+                {
+                  frontBg: 'bg-lifewood-darkSerpent',
+                  frontText: 'text-white',
+                  border: 'border-lifewood-castleton/25',
+                  backBg: 'bg-white',
+                },
+                {
+                  frontBg: 'bg-lifewood-castleton',
+                  frontText: 'text-white',
+                  border: 'border-lifewood-saffron/35',
+                  backBg: 'bg-lifewood-seasalt',
+                },
+                {
+                  frontBg: 'bg-lifewood-saffron',
+                  frontText: 'text-white',
+                  border: 'border-lifewood-earth/50',
+                  backBg: 'bg-white',
+                },
+              ];
+              const theme = frontThemes[index % frontThemes.length];
 
-            <article className="relative overflow-hidden rounded-[26px] bg-lifewood-darkSerpent lg:col-span-8 lg:min-h-[360px]">
-              <img
-                key={activePanel.id}
-                src={activePanel.image}
-                alt={activePanel.title}
-                className="h-[240px] w-full animate-[imageReveal_650ms_ease] object-cover md:h-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-lifewood-darkSerpent/35 via-transparent to-lifewood-darkSerpent/25"></div>
-              <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/35 bg-black/20 p-1 backdrop-blur-sm">
-                  {panels.map((panel, index) => {
-                    const active = activeIndex === index;
-                    return (
-                      <button
-                        key={panel.id}
-                        type="button"
-                        onClick={() => setActiveIndex(index)}
-                        onMouseEnter={() => setActiveIndex(index)}
-                        className={`rounded-lg px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.11em] transition ${
-                          active ? 'bg-white text-lifewood-darkSerpent' : 'text-white/75 hover:bg-white/20 hover:text-white'
-                        }`}
-                      >
-                        {panel.label.replace('Key Features', 'Solutions')}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="absolute bottom-3 left-3 rounded-md bg-black/25 px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.1em] text-white/85 backdrop-blur-sm">
-                {activePanel.title}
-              </div>
-            </article>
+              return (
+                <article key={panel.id} className="rounded-2xl">
+                  <PixelTransition
+                    gridSize={10}
+                    pixelColor={index === 2 ? '#0d3b2f' : '#ffffff'}
+                    animationStepDuration={0.18}
+                    once={false}
+                    aspectRatio="0%"
+                    className="h-[420px] w-full rounded-2xl md:h-[430px]"
+                    style={{}}
+                    firstContent={
+                      <div className={`relative h-full w-full overflow-hidden rounded-2xl border shadow-sm ${theme.frontBg} ${theme.border}`}>
+                        <img
+                          src={panel.image}
+                          alt={panel.title}
+                          className="absolute inset-0 h-full w-full object-cover opacity-22"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
+                        <div className="relative z-10 flex h-full flex-col justify-between p-5">
+                          <div className={`inline-flex w-fit items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.12em] ${theme.frontText}`}>
+                            {String(index + 1).padStart(2, '0')}
+                          </div>
+                          <div>
+                            <p className={`text-[1.55rem] font-bold leading-[1.08] md:text-[1.75rem] ${theme.frontText}`}>
+                              {panel.title === 'Key Features' ? 'Solutions' : panel.title}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    secondContent={
+                      <div className={`flex h-full w-full flex-col rounded-2xl border p-5 shadow-xl ${theme.backBg} ${theme.border}`}>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-lifewood-castleton/80">
+                          {String(index + 1).padStart(2, '0')} {panel.title === 'Key Features' ? 'Solutions' : panel.title}
+                        </p>
+                        <h3 className="mt-2 text-2xl font-bold text-lifewood-darkSerpent">
+                          {panel.title === 'Key Features' ? 'Solutions' : panel.title}
+                        </h3>
+                        <p className="mt-3 shrink-0 text-sm leading-relaxed text-lifewood-darkSerpent/74">
+                          {panel.summary}
+                        </p>
+                        {panel.list.length > 0 && (
+                          <ul className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                            {panel.list.map((item) => (
+                              <li key={item} className="flex items-start gap-2 text-[0.9rem] leading-snug text-lifewood-darkSerpent/80">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lifewood-castleton/90" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    }
+                  />
+                </article>
+              );
+            })}
           </div>
         </div>
       </div>
