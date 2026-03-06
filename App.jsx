@@ -14,13 +14,23 @@ import PhilImpact from './components/PhilImpact';
 import Careers from './components/Careers';
 import LoginPortal from './components/LoginPortal';
 import InternalDashboard from './components/InternalDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import IvaFloatButton from './components/IvaFloatButton';
 import { Page } from './types';
+import { supabase } from './services/supabaseClient';
 
 const App = () => {
-  const AUTH_KEY = 'lifewood_demo_auth_user';
-  const DEMO_USERNAME = 'test1';
-  const DEMO_PASSWORD = '12345678';
+  const withTimeout = useCallback(
+    async (promise, ms = 15000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          window.setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)
+        ),
+      ]);
+    },
+    []
+  );
 
   const pageToHash = useMemo(
     () => ({
@@ -53,14 +63,43 @@ const App = () => {
     return hashToPage.get(normalizedHash) || Page.HOME;
   }, [hashToPage]);
 
-  const [authUser, setAuthUser] = useState(() => {
-    try {
-      return window.localStorage.getItem(AUTH_KEY);
-    } catch {
-      return null;
-    }
-  });
+  const [authUser, setAuthUser] = useState(null);
+  const [authRole, setAuthRole] = useState('intern');
+  const [authReady, setAuthReady] = useState(false);
   const isAuthenticated = Boolean(authUser);
+
+  const normalizeRole = useCallback((role) => (role === 'admin' ? 'admin' : 'intern'), []);
+
+  const syncAuthUser = useCallback(
+    (user) => {
+      if (!user) {
+        setAuthUser(null);
+        setAuthRole('intern');
+        return;
+      }
+
+      // Set session identity immediately; resolve role in background.
+      setAuthUser(user.email || 'User');
+      setAuthRole('intern');
+
+      void (async () => {
+        try {
+          const { data } = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .maybeSingle(),
+            6000
+          );
+          setAuthRole(normalizeRole(data?.role));
+        } catch {
+          setAuthRole('intern');
+        }
+      })();
+    },
+    [normalizeRole, withTimeout]
+  );
 
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
   const navigateTo = useCallback(
@@ -80,30 +119,126 @@ const App = () => {
   );
 
   const handleLogin = useCallback(
-    (username, password) => {
-      if (username !== DEMO_USERNAME || password !== DEMO_PASSWORD) {
-        return { ok: false, error: 'Invalid username or password.' };
-      }
-
+    async (email, password) => {
       try {
-        window.localStorage.setItem(AUTH_KEY, DEMO_USERNAME);
-      } catch {
-        // no-op for storage-restricted contexts
+        const { data, error } = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+        );
+        if (error || !data.user) {
+          return { ok: false, error: error?.message || 'Invalid email or password.' };
+        }
+        syncAuthUser(data.user);
+        navigateTo(Page.INTERNAL);
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Network error while signing in. Please try again.',
+        };
       }
-      setAuthUser(DEMO_USERNAME);
-      navigateTo(Page.INTERNAL);
-      return { ok: true };
     },
-    [navigateTo]
+    [navigateTo, syncAuthUser, withTimeout]
   );
 
-  const handleLogout = useCallback(() => {
+  const handleSignup = useCallback(
+    async (email, password, displayName) => {
+      try {
+        const { error } = await withTimeout(
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                display_name: displayName?.trim() || email,
+                full_name: displayName?.trim() || email,
+              },
+            },
+          })
+        );
+        if (error) {
+          return { ok: false, error: error.message || 'Unable to create account right now.' };
+        }
+        return {
+          ok: true,
+          message: `A code has been sent to ${email}.`,
+          requiresOtp: true,
+          email,
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Network error while creating account. Please try again.',
+        };
+      }
+    },
+    [withTimeout]
+  );
+
+  const handleVerifyOtp = useCallback(
+    async (email, token) => {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'signup',
+          })
+        );
+        if (error) {
+          return { ok: false, error: error.message || 'Invalid code.' };
+        }
+        syncAuthUser(data.user || data.session?.user || null);
+        navigateTo(Page.INTERNAL);
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Network error while verifying code. Please try again.',
+        };
+      }
+    },
+    [navigateTo, syncAuthUser, withTimeout]
+  );
+
+  const handleResendOtp = useCallback(async (email) => {
     try {
-      window.localStorage.removeItem(AUTH_KEY);
-    } catch {
-      // no-op for storage-restricted contexts
+      const { error } = await withTimeout(
+        supabase.auth.resend({
+          type: 'signup',
+          email,
+        })
+      );
+      if (error) {
+        return { ok: false, error: error.message || 'Unable to resend code.' };
+      }
+      return { ok: true, message: `A new code was sent to ${email}.` };
+    } catch (err) {
+      return {
+        ok: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : 'Network error while resending code. Please try again.',
+      };
     }
+  }, [withTimeout]);
+
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut();
     setAuthUser(null);
+    setAuthRole('intern');
     navigateTo(Page.HOME);
   }, [navigateTo]);
 
@@ -121,24 +256,80 @@ const App = () => {
   }, [getPageFromHash, pageToHash]);
 
   useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      syncAuthUser(data.session?.user || null);
+      setAuthReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncAuthUser(session?.user || null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [syncAuthUser]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (currentPage === Page.INTERNAL && !isAuthenticated) {
+      navigateTo(Page.LOGIN);
+    }
+  }, [authReady, currentPage, isAuthenticated, navigateTo]);
 
   const renderContent = () => {
     switch (currentPage) {
       case Page.HOME:
         return <Home onNavigate={navigateTo} />;
       case Page.LOGIN:
-        return <LoginPortal onLogin={handleLogin} />;
-      case Page.INTERNAL:
-        return isAuthenticated ? (
-          <InternalDashboard
-            userEmail={authUser || DEMO_USERNAME}
-            onLogout={handleLogout}
-            onGoHome={() => navigateTo(Page.HOME)}
+        return (
+          <LoginPortal
+            onLogin={handleLogin}
+            onSignup={handleSignup}
+            onVerifyOtp={handleVerifyOtp}
+            onResendOtp={handleResendOtp}
           />
+        );
+      case Page.INTERNAL:
+        if (!authReady) {
+          return (
+            <section className="min-h-[calc(100vh-120px)] px-4 py-16 text-center">
+              <p className="text-sm uppercase tracking-[0.2em] text-lifewood-darkSerpent/60">Loading Workspace</p>
+              <h2 className="mt-3 text-2xl font-bold text-lifewood-darkSerpent">Checking your account access...</h2>
+            </section>
+          );
+        }
+        return isAuthenticated ? (
+          authRole === 'admin' ? (
+            <AdminDashboard
+              userEmail={authUser || 'User'}
+              onLogout={handleLogout}
+              onGoHome={() => navigateTo(Page.HOME)}
+            />
+          ) : (
+            <InternalDashboard
+              userEmail={authUser || 'User'}
+              onLogout={handleLogout}
+              onGoHome={() => navigateTo(Page.HOME)}
+            />
+          )
         ) : (
-          <LoginPortal onLogin={handleLogin} />
+          <LoginPortal
+            onLogin={handleLogin}
+            onSignup={handleSignup}
+            onVerifyOtp={handleVerifyOtp}
+            onResendOtp={handleResendOtp}
+          />
         );
       case Page.SERVICES:
         return (

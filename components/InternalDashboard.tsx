@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react';
 import Balatro from './Balatro';
+import { supabase } from '../services/supabaseClient';
 
 interface InternalDashboardProps {
   userEmail: string;
@@ -299,6 +300,28 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
     }
   }, [activeLessonModuleIndex, activeLessonTrack.modules.length]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDisplayName = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      const displayName =
+        (data.user?.user_metadata?.display_name as string | undefined) ||
+        (data.user?.user_metadata?.full_name as string | undefined) ||
+        '';
+      if (displayName.trim()) {
+        setFullName(displayName.trim());
+      }
+    };
+
+    loadDisplayName();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const generateCroppedAvatar = async () => {
     const source = draftProfileImage || profileImage;
     const image = new Image();
@@ -342,7 +365,17 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
 
   const handleSaveProfile = async () => {
     const cropped = await generateCroppedAvatar();
+    const nextName = fullName.trim() || 'Lifewood Intern';
+    setFullName(nextName);
     setProfileImage(cropped);
+
+    await supabase.auth.updateUser({
+      data: {
+        display_name: nextName,
+        full_name: nextName,
+      },
+    });
+
     setShowProfile(false);
   };
 
