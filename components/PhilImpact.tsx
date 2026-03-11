@@ -238,7 +238,7 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div className="bg-lifewood-seasalt text-lifewood-darkSerpent">
+    <div className="phil-impact-page bg-lifewood-seasalt text-lifewood-darkSerpent">
       <section className="relative overflow-hidden bg-lifewood-darkSerpent text-white">
         <img
           src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1200&dpr=2"
@@ -261,17 +261,17 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <RevealOnScroll>
-          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-gradient-to-br from-white via-lifewood-seasalt to-white p-8 shadow-sm md:p-10">
+          <div className="phil-impact-vision-card relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-lifewood-darkSerpent/10 bg-gradient-to-br from-white via-lifewood-seasalt to-white p-8 shadow-sm md:p-10">
             <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-lifewood-saffron/16 blur-2xl"></div>
             <div className="pointer-events-none absolute -left-10 bottom-0 h-24 w-24 rounded-full bg-lifewood-castleton/12 blur-2xl"></div>
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-lifewood-castleton/20 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-lifewood-castleton">
+            <p className="phil-impact-vision-pill mb-4 inline-flex items-center gap-2 rounded-full border border-lifewood-castleton/20 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-lifewood-castleton">
               <Globe2 className="h-3.5 w-3.5" />
               Vision
             </p>
-            <p className="mx-auto max-w-4xl text-center text-2xl font-semibold leading-snug text-lifewood-darkSerpent md:text-4xl">
+            <p className="phil-impact-vision-title mx-auto max-w-4xl text-center text-2xl font-semibold leading-snug text-lifewood-darkSerpent md:text-4xl">
               We believe investment should power social progress and environmental renewal across Africa and the Indian sub-continent.
             </p>
-            <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-relaxed text-lifewood-darkSerpent/70 md:text-base">
+            <p className="phil-impact-vision-copy mx-auto mt-4 max-w-3xl text-center text-sm leading-relaxed text-lifewood-darkSerpent/70 md:text-base">
               Our philanthropy model combines measurable impact, local partnerships, and long-term capability building.
             </p>
           </div>

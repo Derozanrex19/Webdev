@@ -209,6 +209,30 @@ body,
   color: #e5f0e9 !important;
 }
 
+.theme-dark .phil-impact-page {
+  background: #081510 !important;
+}
+
+.theme-dark .phil-impact-page .phil-impact-vision-card {
+  background: linear-gradient(145deg, #0f221b 0%, #122920 55%, #0d1d17 100%) !important;
+  border-color: rgba(181, 210, 194, 0.2) !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+.theme-dark .phil-impact-page .phil-impact-vision-title {
+  color: #e7f4ec !important;
+}
+
+.theme-dark .phil-impact-page .phil-impact-vision-copy {
+  color: #b9cec3 !important;
+}
+
+.theme-dark .phil-impact-page .phil-impact-vision-pill {
+  background: rgba(10, 24, 18, 0.75) !important;
+  border-color: rgba(4, 98, 65, 0.34) !important;
+  color: #4fd49b !important;
+}
+
 .iva-float-btn {
   border: 1px solid rgba(255, 255, 255, 0.38);
   background: linear-gradient(140deg, rgba(6, 50, 35, 0.9), rgba(12, 87, 57, 0.88));
