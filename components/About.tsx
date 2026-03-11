@@ -175,10 +175,14 @@ const About: React.FC<AboutProps> = ({ onNavigate }) => {
                   onBlurCapture={() => setActiveValueIndex((current) => (current === index ? null : current))}
                 >
                   <div
-                    className="relative h-full min-h-[280px] rounded-2xl transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    className="relative h-full min-h-[280px] rounded-2xl transition-transform duration-700"
                     style={{
                       transformStyle: 'preserve-3d',
-                      transform: activeValueIndex === index ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                      transitionTimingFunction: 'cubic-bezier(0.61, 0.98, 0.48, 1.01)',
+                      transform:
+                        activeValueIndex === index
+                          ? 'rotate(180deg) rotateX(180deg)'
+                          : 'rotate(0deg) rotateX(0deg)',
                     }}
                   >
                     <div
