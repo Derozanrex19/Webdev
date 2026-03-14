@@ -198,14 +198,16 @@ const lessonTracks: LessonTrack[] = [
   },
 ];
 
+const AVATAR_BUCKET = 'avatars';
+
 const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogout, onGoHome }) => {
   const [activeSection, setActiveSection] = useState<SectionKey>('dashboard');
   const [activeLessonTrackIndex, setActiveLessonTrackIndex] = useState(0);
   const [activeLessonModuleIndex, setActiveLessonModuleIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [fullName, setFullName] = useState('Lifewood Intern');
   const [school, setSchool] = useState('University of Cebu');
-  const [phone, setPhone] = useState('+63 900 123 4567');
   const [profileImage, setProfileImage] = useState(
     '/profile-default.jpg'
   );
@@ -303,19 +305,46 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
   useEffect(() => {
     let isMounted = true;
 
-    const loadDisplayName = async () => {
+    const loadProfile = async () => {
       const { data } = await supabase.auth.getUser();
       if (!isMounted) return;
+      const currentUser = data.user;
+      const metadata = currentUser?.user_metadata ?? {};
+      setUserId(currentUser?.id ?? null);
+
+      let profileRow: { full_name?: string | null; school?: string | null; avatar_url?: string | null } | null = null;
+      if (currentUser?.id) {
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name, school, avatar_url')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+          profileRow = profileData;
+        } catch {
+          profileRow = null;
+        }
+      }
       const displayName =
-        (data.user?.user_metadata?.display_name as string | undefined) ||
-        (data.user?.user_metadata?.full_name as string | undefined) ||
+        profileRow?.full_name ||
+        (metadata.display_name as string | undefined) ||
+        (metadata.full_name as string | undefined) ||
         '';
+      const savedSchool = profileRow?.school || (metadata.school as string | undefined) || '';
+      const savedAvatar = profileRow?.avatar_url || (metadata.avatar_url as string | undefined) || '';
+
       if (displayName.trim()) {
         setFullName(displayName.trim());
       }
+      if (savedSchool.trim()) {
+        setSchool(savedSchool.trim());
+      }
+      if (savedAvatar.trim()) {
+        setProfileImage(savedAvatar.trim());
+      }
     };
 
-    loadDisplayName();
+    loadProfile();
 
     return () => {
       isMounted = false;
@@ -333,7 +362,8 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
     });
 
     const editorSize = 280;
-    const outputSize = 320;
+    // Keep the payload smaller so it can be persisted safely in auth metadata.
+    const outputSize = 192;
     const ratio = outputSize / editorSize;
     const coverScale = Math.max(editorSize / image.naturalWidth, editorSize / image.naturalHeight);
     const drawWidth = image.naturalWidth * coverScale;
@@ -360,22 +390,75 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
       drawHeight * ratio
     );
     context.restore();
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/jpeg', 0.82);
+  };
+
+  const dataUrlToBlob = async (dataUrl: string) => {
+    const response = await fetch(dataUrl);
+    return response.blob();
   };
 
   const handleSaveProfile = async () => {
-    const cropped = await generateCroppedAvatar();
     const nextName = fullName.trim() || 'Lifewood Intern';
+    const nextSchool = school.trim() || 'University of Cebu';
     setFullName(nextName);
-    setProfileImage(cropped);
+    setSchool(nextSchool);
+    let nextAvatarUrl = profileImage;
+
+    if (draftProfileImage) {
+      const cropped = await generateCroppedAvatar();
+      nextAvatarUrl = cropped;
+      if (userId) {
+        try {
+          const avatarBlob = await dataUrlToBlob(cropped);
+          const avatarPath = `${userId}/avatar.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from(AVATAR_BUCKET)
+            .upload(avatarPath, avatarBlob, {
+              upsert: true,
+              contentType: 'image/jpeg',
+            });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath);
+            if (publicUrlData?.publicUrl) {
+              nextAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+            }
+          }
+        } catch {
+          // Fallback to the local preview if storage is not configured yet.
+        }
+      }
+    }
+
+    setProfileImage(nextAvatarUrl);
+
+    if (userId) {
+      try {
+        await supabase.from('profiles').upsert(
+          {
+            id: userId,
+            full_name: nextName,
+            school: nextSchool,
+            avatar_url: nextAvatarUrl,
+          },
+          { onConflict: 'id' }
+        );
+      } catch {
+        // Fallback to auth metadata when the profiles table is not ready.
+      }
+    }
 
     await supabase.auth.updateUser({
       data: {
         display_name: nextName,
         full_name: nextName,
+        school: nextSchool,
+        avatar_url: nextAvatarUrl,
       },
     });
 
+    setDraftProfileImage(null);
     setShowProfile(false);
   };
 
@@ -547,7 +630,7 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
                       </span>
                       <div>
                         <p className="text-sm font-semibold text-black/85">Profile Sync Complete</p>
-                        <p className="text-xs text-black/50">{phone}</p>
+                        <p className="text-xs text-black/50">{school}</p>
                       </div>
                     </li>
                   </ul>
@@ -747,7 +830,6 @@ const InternalDashboard: React.FC<InternalDashboardProps> = ({ userEmail, onLogo
                   )}
                 </div>
               </label>
-              <label className="text-sm md:col-span-2"><span className="mb-1 block text-white/65">Phone</span><input value={phone} onChange={(event) => setPhone(event.target.value)} className="h-10 w-full rounded-lg border border-white/15 bg-black/20 px-3 outline-none" /></label>
             </div>
             <div className="sticky bottom-0 mt-5 flex justify-end gap-2 border-t border-white/10 bg-[#0e1512]/95 pt-3 backdrop-blur">
               <button onClick={() => setShowProfile(false)} className="rounded-lg border border-white/15 px-4 py-2 text-sm">Cancel</button>

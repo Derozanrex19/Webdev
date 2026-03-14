@@ -102,6 +102,19 @@ const App = () => {
   );
 
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
+  const forceNavigateTo = useCallback(
+    (page) => {
+      setCurrentPage(page);
+      const targetHash = pageToHash[page];
+      if (!targetHash) return;
+      const currentHash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+      if (currentHash !== targetHash) {
+        window.history.pushState(null, '', `#${targetHash}`);
+      }
+    },
+    [pageToHash]
+  );
+
   const navigateTo = useCallback(
     (page) => {
       if (page === Page.INTERNAL && !isAuthenticated) {
@@ -131,7 +144,7 @@ const App = () => {
           return { ok: false, error: error?.message || 'Invalid email or password.' };
         }
         syncAuthUser(data.user);
-        navigateTo(Page.INTERNAL);
+        forceNavigateTo(Page.INTERNAL);
         return { ok: true };
       } catch (err) {
         return {
@@ -143,7 +156,7 @@ const App = () => {
         };
       }
     },
-    [navigateTo, syncAuthUser, withTimeout]
+    [forceNavigateTo, syncAuthUser, withTimeout]
   );
 
   const handleSignup = useCallback(
@@ -197,7 +210,7 @@ const App = () => {
           return { ok: false, error: error.message || 'Invalid code.' };
         }
         syncAuthUser(data.user || data.session?.user || null);
-        navigateTo(Page.INTERNAL);
+        forceNavigateTo(Page.INTERNAL);
         return { ok: true };
       } catch (err) {
         return {
@@ -209,7 +222,7 @@ const App = () => {
         };
       }
     },
-    [navigateTo, syncAuthUser, withTimeout]
+    [forceNavigateTo, syncAuthUser, withTimeout]
   );
 
   const handleResendOtp = useCallback(async (email) => {
