@@ -66,6 +66,7 @@ const App = () => {
 
   const [authUser, setAuthUser] = useState(null);
   const [authRole, setAuthRole] = useState('intern');
+  const [authRoleLoaded, setAuthRoleLoaded] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const isAuthenticated = Boolean(authUser);
 
@@ -76,12 +77,14 @@ const App = () => {
       if (!user) {
         setAuthUser(null);
         setAuthRole('intern');
+        setAuthRoleLoaded(true);
         return;
       }
 
       // Set session identity immediately; resolve role in background.
       setAuthUser(user.email || 'User');
       setAuthRole('intern');
+       setAuthRoleLoaded(false);
 
       void (async () => {
         try {
@@ -97,6 +100,7 @@ const App = () => {
         } catch {
           setAuthRole('intern');
         }
+        setAuthRoleLoaded(true);
       })();
     },
     [normalizeRole, withTimeout]
@@ -144,8 +148,30 @@ const App = () => {
         if (error || !data.user) {
           return { ok: false, error: error?.message || 'Invalid email or password.' };
         }
-        syncAuthUser(data.user);
-        forceNavigateTo(Page.INTERNAL);
+
+        const user = data.user;
+        let role = 'intern';
+        try {
+          const { data: profile } = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .maybeSingle(),
+            6000
+          );
+          role = profile?.role === 'admin' ? 'admin' : 'intern';
+        } catch {
+          role = 'intern';
+        }
+
+        syncAuthUser(user);
+        if (role === 'admin') {
+          forceNavigateTo(Page.INTERNAL);
+        } else {
+          forceNavigateTo(Page.HOME);
+        }
+
         return { ok: true };
       } catch (err) {
         return {
@@ -211,7 +237,8 @@ const App = () => {
           return { ok: false, error: error.message || 'Invalid code.' };
         }
         syncAuthUser(data.user || data.session?.user || null);
-        forceNavigateTo(Page.INTERNAL);
+        // New signups are not admins by default; send them to home.
+        forceNavigateTo(Page.HOME);
         return { ok: true };
       } catch (err) {
         return {
@@ -296,6 +323,7 @@ const App = () => {
 
   useEffect(() => {
     if (!authReady) return;
+    if (isAuthenticated && !authRoleLoaded) return;
     if (currentPage === Page.INTERNAL && !isAuthenticated) {
       navigateTo(Page.LOGIN);
     } else if (currentPage === Page.INTERNAL && isAuthenticated && authRole !== 'admin') {

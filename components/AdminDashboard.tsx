@@ -12,11 +12,15 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react';
-import Balatro from './Balatro';
+import emailjs from '@emailjs/browser';
 import { supabase } from '../services/supabaseClient';
 
 const CAREER_BUCKET = 'career-documents';
 const STATUS_OPTIONS = ['submitted', 'reviewed', 'contacted', 'rejected'] as const;
+
+const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
+const EMAILJS_CONTACT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_CONTACT_REPLY_TEMPLATE_ID || '';
 
 interface AdminDashboardProps {
   userEmail: string;
@@ -63,12 +67,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [careerFilter, setCareerFilter] = useState<string>('all');
   const [careerPositionFilter, setCareerPositionFilter] = useState<string>('all');
   const [careerCountryFilter, setCareerCountryFilter] = useState<string>('all');
+  const [careerSearchInput, setCareerSearchInput] = useState('');
   const [careerSearch, setCareerSearch] = useState('');
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [resumeLoading, setResumeLoading] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState('');
 
   const fetchCareers = useCallback(async () => {
     setLoadingCareers(true);
@@ -98,6 +105,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     if (activeSection === 'overview' || activeSection === 'contact') fetchContact();
   }, [activeSection, fetchContact]);
 
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setCareerSearch(careerSearchInput);
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [careerSearchInput]);
+
   const filteredCareers = careerApps.filter((app) => {
     const matchStatus = careerFilter === 'all' || app.status === careerFilter;
     const matchPosition = careerPositionFilter === 'all' || app.position_applied === careerPositionFilter;
@@ -113,6 +127,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
   const newCareersCount = careerApps.filter((a) => a.status === 'submitted').length;
   const unreadContactCount = contactMessages.filter((m) => !m.read).length;
+  const showCareersLoading = loadingCareers && careerApps.length === 0;
+  const showContactLoading = loadingContact && contactMessages.length === 0;
 
   const statusBreakdown = STATUS_OPTIONS.map((status) => ({
     status,
@@ -136,13 +152,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     if (selectedContact?.id === id) setSelectedContact((prev) => (prev ? { ...prev, read: true } : null));
   };
 
-  const handleBulkMarkSubmittedReviewed = async () => {
-    const targetIds = careerApps.filter((a) => a.status === 'submitted').map((a) => a.id);
-    if (targetIds.length === 0) return;
-    setBulkUpdating(true);
-    await supabase.from('career_applications').update({ status: 'reviewed' }).in('id', targetIds);
-    await fetchCareers();
-    setBulkUpdating(false);
+  const handleSendContactReply = async () => {
+    if (!selectedContact || !replyText.trim()) return;
+    if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_CONTACT_TEMPLATE_ID) {
+      setReplyError('EmailJS is not fully configured. Check your .env.local settings.');
+      return;
+    }
+    setSendingReply(true);
+    setReplyError('');
+    try {
+      if (EMAILJS_PUBLIC_KEY) {
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+      }
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TEMPLATE_ID, {
+        to_email: selectedContact.email,
+        email: selectedContact.email,
+        first_name: selectedContact.first_name,
+        last_name: selectedContact.last_name,
+        reply_body: replyText.trim(),
+      });
+      setReplyText('');
+    } catch (err) {
+      setReplyError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to send reply. Please try again or check EmailJS logs.'
+      );
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const handleExportCareersCsv = () => {
@@ -211,22 +249,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
   return (
     <section className="relative z-10 min-h-screen overflow-hidden bg-transparent px-4 py-5 text-white sm:px-6 lg:px-8">
-      <div className="pointer-events-none fixed inset-0 z-0 opacity-45">
-        <Balatro
-          isRotate={false}
-          mouseInteraction={true}
-          pixelFilter={860}
-          color1="#C8FF34"
-          color2="#046241"
-          color3="#0b1f17"
-          contrast={2.2}
-          lighting={0.34}
-          spinAmount={0.16}
-          spinSpeed={4.3}
-          spinRotation={-1.05}
-          spinEase={0.9}
-        />
-      </div>
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_12%,rgba(200,255,52,0.16),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(255,179,71,0.16),transparent_36%),linear-gradient(to_bottom,rgba(4,14,10,0.30),rgba(4,14,10,0.58))]" />
 
       <div className="relative z-10 mx-auto grid max-w-[96rem] grid-cols-1 gap-5 lg:grid-cols-12">
@@ -324,7 +346,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
                     <Briefcase className="h-5 w-5" /> Recent Applications
                   </h2>
-                  {loadingCareers ? (
+                  {showCareersLoading ? (
                     <p className="mt-4 text-white/60">Loading…</p>
                   ) : careerApps.length === 0 ? (
                     <p className="mt-4 text-white/60">No applications yet.</p>
@@ -350,7 +372,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
                     <MessageSquare className="h-5 w-5" /> Recent Messages
                   </h2>
-                  {loadingContact ? (
+                  {showContactLoading ? (
                     <p className="mt-4 text-white/60">Loading…</p>
                   ) : contactMessages.length === 0 ? (
                     <p className="mt-4 text-white/60">No messages yet.</p>
@@ -378,18 +400,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
           {activeSection === 'careers' && (
             <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="relative flex-1 max-w-xs">
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div className="relative w-full lg:max-w-sm">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search by name, email, position…"
-                    value={careerSearch}
-                    onChange={(e) => setCareerSearch(e.target.value)}
+                    value={careerSearchInput}
+                    onChange={(e) => setCareerSearchInput(e.target.value)}
                     className="w-full rounded-xl border border-white/15 bg-black/20 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/50 focus:border-lifewood-saffron/50 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-white/60">Status:</span>
                     <select
@@ -439,7 +461,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                       setCareerFilter('all');
                       setCareerPositionFilter('all');
                       setCareerCountryFilter('all');
-                      setCareerSearch('');
+                      setCareerSearchInput('');
                     }}
                     className="rounded-xl border border-white/15 bg-black/10 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/10"
                   >
@@ -453,17 +475,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     <FileText className="h-3.5 w-3.5" />
                     Export CSV
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleBulkMarkSubmittedReviewed}
-                    disabled={bulkUpdating || newCareersCount === 0}
-                    className="inline-flex items-center gap-1 rounded-xl border border-lifewood-saffron/40 bg-lifewood-saffron/10 px-3 py-1.5 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/20 disabled:opacity-50"
-                  >
-                    Mark submitted → reviewed
-                  </button>
                 </div>
               </div>
-              {loadingCareers ? (
+              {showCareersLoading ? (
                 <p className="py-8 text-center text-white/60">Loading applications…</p>
               ) : filteredCareers.length === 0 ? (
                 <p className="py-8 text-center text-white/60">No applications match.</p>
@@ -555,7 +569,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
           {activeSection === 'contact' && (
             <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-              {loadingContact ? (
+              {showContactLoading ? (
                 <p className="py-8 text-center text-white/60">Loading messages…</p>
               ) : contactMessages.length === 0 ? (
                 <p className="py-8 text-center text-white/60">No contact messages yet.</p>
@@ -565,7 +579,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     <li
                       key={m.id}
                       className={`flex items-center justify-between rounded-xl border px-4 py-3 cursor-pointer transition ${m.read ? 'border-white/10 bg-black/20 hover:bg-white/5' : 'border-lifewood-saffron/30 bg-lifewood-saffron/5 hover:bg-lifewood-saffron/10'}`}
-                      onClick={() => setSelectedContact(m)}
+                      onClick={() => {
+                        setSelectedContact(m);
+                        if (!m.read) {
+                          void handleMarkContactRead(m.id);
+                        }
+                      }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         {!m.read && <span className="h-2 w-2 rounded-full bg-lifewood-saffron flex-shrink-0" />}
@@ -646,12 +665,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
             <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-white/90 whitespace-pre-wrap">
               {selectedContact.message}
             </div>
-            <a
-              href={`mailto:${selectedContact.email}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold hover:bg-white/10"
-            >
-              <Mail className="h-4 w-4" /> Reply
-            </a>
+            <div className="mt-5 space-y-3">
+              <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+                Reply to sender
+              </label>
+              <textarea
+                rows={4}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm text-white placeholder:text-white/40 focus:border-lifewood-saffron/60 focus:outline-none"
+                placeholder="Write your reply…"
+              />
+              {replyError && <p className="text-xs text-red-300">{replyError}</p>}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendContactReply}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
+                >
+                  {sendingReply ? (
+                    'Sending…'
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" /> Send reply
+                    </>
+                  )}
+                </button>
+                <a
+                  href={`mailto:${selectedContact.email}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold hover:bg-white/10"
+                >
+                  Open in email client
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}
