@@ -12,8 +12,8 @@ import Projects from './components/Projects';
 import OfferTypePage from './components/OfferTypePage';
 import PhilImpact from './components/PhilImpact';
 import Careers from './components/Careers';
+import CareersApplication from './components/CareersApplication';
 import LoginPortal from './components/LoginPortal';
-import InternalDashboard from './components/InternalDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import IvaFloatButton from './components/IvaFloatButton';
 import { Page } from './types';
@@ -47,6 +47,7 @@ const App = () => {
       [Page.TYPE_D]: 'type-d',
       [Page.PHIL_IMPACT]: 'philanthropy-impact',
       [Page.CAREERS]: 'careers',
+      [Page.CAREERS_APPLY]: 'careers-apply',
       [Page.CONTACT]: 'contact',
       [Page.IVA]: 'iva',
     }),
@@ -297,8 +298,10 @@ const App = () => {
     if (!authReady) return;
     if (currentPage === Page.INTERNAL && !isAuthenticated) {
       navigateTo(Page.LOGIN);
+    } else if (currentPage === Page.INTERNAL && isAuthenticated && authRole !== 'admin') {
+      navigateTo(Page.HOME);
     }
-  }, [authReady, currentPage, isAuthenticated, navigateTo]);
+  }, [authReady, currentPage, isAuthenticated, authRole, navigateTo]);
 
   const renderContent = () => {
     switch (currentPage) {
@@ -322,27 +325,24 @@ const App = () => {
             </section>
           );
         }
-        return isAuthenticated ? (
-          authRole === 'admin' ? (
-            <AdminDashboard
-              userEmail={authUser || 'User'}
-              onLogout={handleLogout}
-              onGoHome={() => navigateTo(Page.HOME)}
-            />
-          ) : (
-            <InternalDashboard
-              userEmail={authUser || 'User'}
-              onLogout={handleLogout}
-              onGoHome={() => navigateTo(Page.HOME)}
-            />
-          )
-        ) : (
+        return isAuthenticated && authRole === 'admin' ? (
+          <AdminDashboard
+            userEmail={authUser || 'User'}
+            onLogout={handleLogout}
+            onGoHome={() => navigateTo(Page.HOME)}
+          />
+        ) : !isAuthenticated ? (
           <LoginPortal
             onLogin={handleLogin}
             onSignup={handleSignup}
             onVerifyOtp={handleVerifyOtp}
             onResendOtp={handleResendOtp}
           />
+        ) : (
+          <section className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center px-4 py-16 text-center bg-[#0a0f0d]">
+            <p className="text-white/80">You don’t have access to the admin dashboard.</p>
+            <button type="button" onClick={() => navigateTo(Page.HOME)} className="mt-4 rounded-xl bg-lifewood-saffron px-5 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth transition">Go to Home</button>
+          </section>
         );
       case Page.SERVICES:
         return (
@@ -362,6 +362,8 @@ const App = () => {
         return <PhilImpact onNavigate={navigateTo} />;
       case Page.CAREERS:
         return <Careers onNavigate={navigateTo} />;
+      case Page.CAREERS_APPLY:
+        return <CareersApplication onNavigate={navigateTo} />;
       case Page.PROJECTS:
         return <Projects onNavigate={navigateTo} />;
       case Page.ABOUT:

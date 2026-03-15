@@ -1,8 +1,48 @@
-import React from 'react';
-import { Mail, Phone, MapPin, ArrowRight, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Phone, MapPin, ArrowRight, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react';
 import LiquidEther from './LiquidEther';
+import { supabase } from '../services/supabaseClient';
 
 const Contact: React.FC = () => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitStatus('idle');
+    setErrorMessage('');
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !message.trim()) {
+      setSubmitStatus('error');
+      setErrorMessage('Please fill in all fields.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('contact_submissions').insert({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        message: message.trim(),
+      });
+      if (error) throw error;
+      setSubmitStatus('success');
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setMessage('');
+    } catch (err) {
+      setSubmitStatus('error');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="bg-lifewood-paper py-24 relative overflow-hidden">
       <div className="absolute inset-0">
@@ -44,27 +84,35 @@ const Contact: React.FC = () => {
             {/* Form */}
             <div className="space-y-8">
                 <h3 className="text-2xl font-bold text-lifewood-darkSerpent">Send us a message</h3>
-                <form className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">First Name</label>
-                            <input type="text" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Jane" />
+                            <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Jane" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">Last Name</label>
-                            <input type="text" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Doe" />
+                            <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Doe" />
                         </div>
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">Work Email</label>
-                        <input type="email" className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="jane@company.com" />
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="jane@company.com" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-lifewood-darkSerpent/60 uppercase tracking-widest">How can we help?</label>
-                        <textarea rows={4} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Tell us about your project needs..."></textarea>
+                        <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} className="w-full bg-white/85 border border-lifewood-castleton/10 focus:border-lifewood-saffron rounded-lg p-4 text-lifewood-darkSerpent placeholder:text-lifewood-castleton/50 focus:ring-2 focus:ring-lifewood-saffron/25 focus:outline-none transition-all" placeholder="Tell us about your project needs..." />
                     </div>
-                    <button className="w-full bg-lifewood-saffron text-lifewood-darkSerpent font-bold py-4 rounded-lg hover:bg-[#f7b646] transition-colors flex justify-center items-center gap-2 shadow-lg hover:shadow-xl">
-                        Send Message <ArrowRight className="w-5 h-5" />
+                    {submitStatus === 'success' && (
+                      <p className="flex items-center gap-2 text-lifewood-castleton font-medium">
+                        <CheckCircle2 className="h-5 w-5" /> Message sent. We’ll get back to you soon.
+                      </p>
+                    )}
+                    {submitStatus === 'error' && (
+                      <p className="text-red-600 text-sm">{errorMessage}</p>
+                    )}
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-lifewood-saffron text-lifewood-darkSerpent font-bold py-4 rounded-lg hover:bg-[#f7b646] transition-colors flex justify-center items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed">
+                        {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Sending...</> : <>Send Message <ArrowRight className="w-5 h-5" /></>}
                     </button>
                 </form>
             </div>

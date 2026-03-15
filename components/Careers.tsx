@@ -38,10 +38,9 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
               Careers in Lifewood
             </h1>
 
-            <a
-              href="https://application-form-ph.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => onNavigate(Page.CAREERS_APPLY)}
               className="careers-cta mt-8 inline-flex h-12 items-stretch overflow-hidden rounded-full border border-[#de9f31] bg-lifewood-saffron text-lifewood-darkSerpent transition hover:brightness-95"
             >
               <span className="inline-flex items-center px-6 text-[1.65rem] font-bold leading-none">Join Us</span>
@@ -49,7 +48,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
               <span className="inline-flex items-center px-5">
                 <ArrowRight className="h-5 w-5" />
               </span>
-            </a>
+            </button>
           </div>
 
           <p className="careers-lead animate-[fadeUp_860ms_ease-out] text-2xl leading-[1.45] text-black/88 sm:text-[1.9rem] lg:pb-2">
