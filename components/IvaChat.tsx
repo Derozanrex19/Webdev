@@ -8,9 +8,10 @@ const IvaChat: React.FC = () => {
     {
       id: 'welcome',
       role: 'model',
-      text: "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
+      text:
+        "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
       timestamp: new Date(),
-    }
+    },
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +22,59 @@ const IvaChat: React.FC = () => {
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem('ivaAdminContext');
+    if (!raw) return;
+    window.localStorage.removeItem('ivaAdminContext');
+
+    let parsed: { type: 'career' | 'contact'; data: any } | null = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed) return;
+
+    const { type, data } = parsed;
+    let question = '';
+    if (type === 'career') {
+      question = `You are Lifewood's virtual assistant helping an admin review a job application.\n\nCandidate name: ${data.first_name} ${data.last_name}\nPosition: ${data.position_applied}\nCountry: ${data.country}\nEmail: ${data.email}\nPhone: ${data.phone_code} ${data.phone_number}\nGender: ${data.gender}\nAge: ${data.age}\nAddress: ${data.current_address}\nStatus: ${data.status}\n\nSummarize this candidate in 3–4 sentences and suggest concise next steps for the recruiter. Be specific but brief.`;
+    } else {
+      question = `You are Lifewood's virtual assistant helping an admin respond to a contact message.\n\nSender: ${data.first_name} ${data.last_name}\nEmail: ${data.email}\nMessage:\n${data.message}\n\nFirst, summarize what this person is asking for in 1–2 sentences. Then suggest a short, warm, professional reply the admin could send (3–4 sentences).`;
+    }
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: question,
+      timestamp: new Date(),
+    };
+
+    const baseHistory = messages.map((m) => ({ role: m.role, text: m.text }));
+
+    const run = async () => {
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
+      try {
+        const responseText = await getIvaResponse(question, [...baseHistory, { role: 'user', text: question }]);
+        const modelMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'model',
+          text: responseText,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, modelMsg]);
+      } catch (error) {
+        console.error('Chat error', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    run();
+  }, []);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;

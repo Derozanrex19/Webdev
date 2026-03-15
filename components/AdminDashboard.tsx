@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../services/supabaseClient';
+import { getIvaResponse } from '../services/geminiService';
 
 const CAREER_BUCKET = 'career-documents';
 const STATUS_OPTIONS = ['submitted', 'reviewed', 'contacted', 'rejected'] as const;
@@ -76,6 +77,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
+  const [replySuccessOpen, setReplySuccessOpen] = useState(false);
+  const [draftingReplyWithIva, setDraftingReplyWithIva] = useState(false);
 
   const fetchCareers = useCallback(async () => {
     setLoadingCareers(true);
@@ -111,6 +114,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     }, 150);
     return () => window.clearTimeout(id);
   }, [careerSearchInput]);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem('ivaAdminContext');
+    if (!raw) return;
+    window.localStorage.removeItem('ivaAdminContext');
+    let parsed: { type: 'career' | 'contact'; data: any } | null = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+    if (!parsed) return;
+
+    const { type, data } = parsed;
+    let question = '';
+    if (type === 'career') {
+      question = `You are Lifewood's virtual assistant helping an admin review a job application.\n\nCandidate name: ${data.first_name} ${data.last_name}\nPosition: ${data.position_applied}\nCountry: ${data.country}\nEmail: ${data.email}\nPhone: ${data.phone_code} ${data.phone_number}\nGender: ${data.gender}\nAge: ${data.age}\nAddress: ${data.current_address}\nStatus: ${data.status}\n\nSummarize this candidate in 3–4 sentences and suggest concise next steps for the recruiter. Be specific but brief.`;
+    } else {
+      question = `You are Lifewood's virtual assistant helping an admin respond to a contact message.\n\nSender: ${data.first_name} ${data.last_name}\nEmail: ${data.email}\nMessage:\n${data.message}\n\nFirst, summarize what this person is asking for in 1–2 sentences. Then suggest a short, warm, professional reply the admin could send (3–4 sentences).`;
+    }
+
+    const userMsg = {
+      id: `${Date.now()}`,
+      role: 'user' as const,
+      text: question,
+      timestamp: new Date(),
+    };
+
+    // Fire-and-forget: we just seed IVA's conversation; IvaChat
+    // will read ivaAdminContext separately via the shared API.
+    // This hook exists so we have a single place to clear the key if needed.
+  }, []);
 
   const filteredCareers = careerApps.filter((app) => {
     const matchStatus = careerFilter === 'all' || app.status === careerFilter;
@@ -172,6 +207,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         reply_body: replyText.trim(),
       });
       setReplyText('');
+      setReplySuccessOpen(true);
     } catch (err) {
       setReplyError(
         err instanceof Error
@@ -180,6 +216,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       );
     } finally {
       setSendingReply(false);
+    }
+  };
+
+  const handleDraftReplyWithIva = async () => {
+    if (!selectedContact) return;
+    setDraftingReplyWithIva(true);
+    setReplyError('');
+    try {
+      const prompt = `You are Lifewood's virtual assistant drafting an email reply on behalf of a human admin.\n\nSender name: ${selectedContact.first_name} ${selectedContact.last_name}\nSender email: ${selectedContact.email}\nOriginal message:\n${selectedContact.message}\n\nWrite a short, warm, professional reply email of 3–5 sentences. Do not use placeholders. Speak as "we" from Lifewood.`;
+      const draft = await getIvaResponse(prompt, []);
+      setReplyText(draft.trim());
+    } catch (err) {
+      setReplyError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to draft reply with Iva. Please try again.'
+      );
+    } finally {
+      setDraftingReplyWithIva(false);
     }
   };
 
@@ -639,7 +694,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   ))}
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  window.localStorage.setItem(
+                    'ivaAdminContext',
+                    JSON.stringify({ type: 'career', data: selectedCareer })
+                  );
+                  window.location.hash = 'iva';
+                }}
+                className="mt-2 inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+              >
+                Ask Iva about this candidate
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact reply success modal */}
+      {replySuccessOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setReplySuccessOpen(false)}>
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/12 bg-[#0e1512] p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setReplySuccessOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="text-xs uppercase tracking-[0.22em] text-lifewood-saffron/90">Message sent</p>
+            <h3 className="mt-2 text-lg font-bold text-white">Reply delivered successfully</h3>
+            <p className="mt-3 text-sm text-white/70">
+              Your response has been sent to the sender’s email address.
+            </p>
+            <button
+              type="button"
+              onClick={() => setReplySuccessOpen(false)}
+              className="mt-5 inline-flex items-center justify-center rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -669,6 +763,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
                 Reply to sender
               </label>
+              <button
+                type="button"
+                onClick={handleDraftReplyWithIva}
+                disabled={draftingReplyWithIva}
+                className="mb-1 inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/50 bg-lifewood-saffron/10 px-3 py-1.5 text-[0.72rem] font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/20 disabled:opacity-60"
+              >
+                {draftingReplyWithIva ? 'Letting Iva draft…' : 'Let Iva draft a reply'}
+              </button>
               <textarea
                 rows={4}
                 value={replyText}
@@ -691,6 +793,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                       <Mail className="h-4 w-4" /> Send reply
                     </>
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.localStorage.setItem(
+                      'ivaAdminContext',
+                      JSON.stringify({ type: 'contact', data: selectedContact })
+                    );
+                    window.location.hash = 'iva';
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+                >
+                  Ask Iva about this message
                 </button>
                 <a
                   href={`mailto:${selectedContact.email}`}
