@@ -431,6 +431,7 @@ const App = () => {
           onNavigate={navigateTo}
           onAdminAccess={openAdminAccess}
           isAuthenticated={isAuthenticated}
+          canAccessDashboard={isAuthenticated && authRole === 'admin'}
           onLogout={handleLogout}
         />
       )}

@@ -70,6 +70,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [careerCountryFilter, setCareerCountryFilter] = useState<string>('all');
   const [careerSearchInput, setCareerSearchInput] = useState('');
   const [careerSearch, setCareerSearch] = useState('');
+  const [contactSearchInput, setContactSearchInput] = useState('');
+  const [contactSearch, setContactSearch] = useState('');
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -116,6 +118,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   }, [careerSearchInput]);
 
   useEffect(() => {
+    const id = window.setTimeout(() => {
+      setContactSearch(contactSearchInput);
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [contactSearchInput]);
+
+  useEffect(() => {
     const raw = window.localStorage.getItem('ivaAdminContext');
     if (!raw) return;
     window.localStorage.removeItem('ivaAdminContext');
@@ -160,6 +169,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     return matchStatus && matchPosition && matchCountry && matchSearch;
   });
 
+  const filteredContacts = contactMessages.filter((message) => {
+    const q = contactSearch.trim().toLowerCase();
+    if (!q) return true;
+
+    return (
+      `${message.first_name} ${message.last_name}`.toLowerCase().includes(q) ||
+      message.email.toLowerCase().includes(q) ||
+      message.message.toLowerCase().includes(q)
+    );
+  });
+
   const newCareersCount = careerApps.filter((a) => a.status === 'submitted').length;
   const unreadContactCount = contactMessages.filter((m) => !m.read).length;
   const showCareersLoading = loadingCareers && careerApps.length === 0;
@@ -172,6 +192,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
   const uniquePositions = Array.from(new Set(careerApps.map((a) => a.position_applied))).sort();
   const uniqueCountries = Array.from(new Set(careerApps.map((a) => a.country))).sort();
+
+  useEffect(() => {
+    if (activeSection !== 'contact') return;
+
+    if (!filteredContacts.length) {
+      if (selectedContact) setSelectedContact(null);
+      return;
+    }
+
+    if (!selectedContact) {
+      setSelectedContact(filteredContacts[0]);
+      return;
+    }
+
+    const nextSelected = filteredContacts.find((item) => item.id === selectedContact.id);
+    if (!nextSelected) {
+      setSelectedContact(filteredContacts[0]);
+      return;
+    }
+
+    if (nextSelected !== selectedContact) {
+      setSelectedContact(nextSelected);
+    }
+  }, [activeSection, filteredContacts, selectedContact]);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingStatus(true);
@@ -319,6 +363,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' });
   };
 
+  const getMessagePreview = (message: string) => {
+    const normalized = message.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= 120) return normalized;
+    return `${normalized.slice(0, 117)}...`;
+  };
+
   return (
     <section className="relative z-10 min-h-screen overflow-hidden bg-transparent px-4 py-5 text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_12%,rgba(200,255,52,0.16),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(255,179,71,0.16),transparent_36%),linear-gradient(to_bottom,rgba(4,14,10,0.30),rgba(4,14,10,0.58))]" />
@@ -375,14 +425,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         </aside>
 
         <div className="space-y-5 lg:col-span-8 xl:col-span-9">
-          <article className="relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-r from-[#131c17]/95 to-[#101612]/95 p-6 md:p-8">
+          <article className="relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-r from-[#131c17]/95 to-[#101612]/95 p-5 md:p-7">
             <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Lifewood Admin</p>
-            <h1 className="mt-2 text-3xl font-black md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black md:text-[3.6rem] md:leading-[0.94]">
               {activeSection === 'overview' && 'Dashboard'}
               {activeSection === 'careers' && 'Career Applications'}
               {activeSection === 'contact' && 'Contact Messages'}
             </h1>
-            <p className="mt-3 text-base text-white/72 md:text-lg">
+            <p className="mt-3 max-w-3xl text-base text-white/72 md:text-lg">
               {activeSection === 'overview' && 'Summary of applications and contact form submissions.'}
               {activeSection === 'careers' && 'View, filter, and manage job applications from the Careers page.'}
               {activeSection === 'contact' && 'Messages sent via the Contact Us form.'}
@@ -391,79 +441,154 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
           {activeSection === 'overview' && (
             <>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/60">Career Applications</p>
-                  <p className="mt-2 text-4xl font-black text-lifewood-saffron">{careerApps.length}</p>
-                  <p className="mt-1 text-xs text-white/60">{newCareersCount} new</p>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1.2fr_1fr]">
+                <article className="relative overflow-hidden rounded-3xl border border-lifewood-saffron/20 bg-[linear-gradient(135deg,rgba(200,255,52,0.10),rgba(16,22,18,0.96))] p-6 shadow-[0_22px_42px_rgba(0,0,0,0.28)]">
+                  <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-lifewood-saffron/10 blur-2xl" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-white/55">Career Applications</p>
+                      <p className="mt-3 text-5xl font-black text-lifewood-saffron">{careerApps.length}</p>
+                      <p className="mt-2 text-sm text-white/62">{newCareersCount} new candidates waiting for review</p>
+                    </div>
+                    <div className="rounded-2xl border border-lifewood-saffron/25 bg-lifewood-saffron/10 p-3 text-lifewood-saffron">
+                      <Briefcase className="h-6 w-6" />
+                    </div>
+                  </div>
                 </article>
-                <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/60">Contact Messages</p>
-                  <p className="mt-2 text-4xl font-black">{contactMessages.length}</p>
-                  <p className="mt-1 text-xs text-white/60">{unreadContactCount} unread</p>
+                <article className="relative overflow-hidden rounded-3xl border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(16,22,18,0.96))] p-6 shadow-[0_22px_42px_rgba(0,0,0,0.22)]">
+                  <div className="pointer-events-none absolute bottom-0 right-0 h-24 w-24 rounded-full bg-white/6 blur-2xl" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-white/55">Contact Messages</p>
+                      <p className="mt-3 text-5xl font-black text-white">{contactMessages.length}</p>
+                      <p className="mt-2 text-sm text-white/62">{unreadContactCount} unread messages in the queue</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/5 p-3 text-white/85">
+                      <MessageSquare className="h-6 w-6" />
+                    </div>
+                  </div>
+                </article>
+                <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/45">At a Glance</p>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="text-3xl font-black text-white">{statusBreakdown.find(({ status }) => status === 'reviewed')?.count ?? 0}</p>
+                      <p className="mt-1 text-sm text-white/62">applications already reviewed</p>
+                    </div>
+                    <div className="h-px bg-white/8" />
+                    <div>
+                      <p className="text-3xl font-black text-emerald-200">{statusBreakdown.find(({ status }) => status === 'contacted')?.count ?? 0}</p>
+                      <p className="mt-1 text-sm text-white/62">candidates moved forward</p>
+                    </div>
+                  </div>
                 </article>
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {statusBreakdown.map(({ status, count }) => (
-                  <article key={status} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-xs">
-                    <p className="uppercase tracking-[0.18em] text-white/45">{status}</p>
-                    <p className="mt-1 text-2xl font-extrabold">{count}</p>
+                  <article
+                    key={status}
+                    className={`rounded-2xl border px-4 py-4 text-xs ${
+                      status === 'submitted'
+                        ? 'border-lifewood-saffron/18 bg-lifewood-saffron/5'
+                        : status === 'reviewed'
+                        ? 'border-cyan-300/14 bg-cyan-300/5'
+                        : status === 'contacted'
+                        ? 'border-emerald-300/14 bg-emerald-300/5'
+                        : 'border-red-300/14 bg-red-300/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          status === 'submitted'
+                            ? 'bg-lifewood-saffron'
+                            : status === 'reviewed'
+                            ? 'bg-cyan-300'
+                            : status === 'contacted'
+                            ? 'bg-emerald-300'
+                            : 'bg-red-300'
+                        }`}
+                      />
+                      <p className="uppercase tracking-[0.18em] text-white/45">{status}</p>
+                    </div>
+                    <p className="mt-3 text-3xl font-extrabold">{count}</p>
                   </article>
                 ))}
               </div>
 
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-                  <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
-                    <Briefcase className="h-5 w-5" /> Recent Applications
-                  </h2>
+                <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
+                        <Briefcase className="h-5 w-5" /> Recent Applications
+                      </h2>
+                      <p className="mt-1 text-sm text-white/52">Latest candidates that need attention from the hiring team.</p>
+                    </div>
+                  </div>
                   {showCareersLoading ? (
                     <p className="mt-4 text-white/60">Loading…</p>
                   ) : careerApps.length === 0 ? (
                     <p className="mt-4 text-white/60">No applications yet.</p>
                   ) : (
-                    <ul className="mt-4 space-y-2">
+                    <ul className="mt-5 space-y-2.5">
                       {careerApps.slice(0, 5).map((app) => (
                         <li
                           key={app.id}
-                          className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 cursor-pointer hover:bg-white/5 transition"
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer hover:bg-white/5 transition"
                           onClick={() => setSelectedCareer(app)}
                         >
-                          <span className="font-medium truncate">{app.first_name} {app.last_name}</span>
-                          <span className="text-xs text-white/60">{app.position_applied}</span>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-white">{app.first_name} {app.last_name}</p>
+                            <p className="mt-0.5 truncate text-xs text-white/45">{app.email}</p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-white/6 px-2.5 py-1 text-[0.68rem] font-semibold text-white/70">
+                            {app.position_applied}
+                          </span>
                         </li>
                       ))}
                     </ul>
                   )}
-                  <button onClick={() => setActiveSection('careers')} className="mt-4 text-sm font-semibold text-lifewood-saffron hover:underline">
-                    View all →
+                  <button onClick={() => setActiveSection('careers')} className="mt-5 text-sm font-semibold text-lifewood-saffron hover:underline">
+                    View all applications →
                   </button>
                 </article>
-                <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-                  <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
-                    <MessageSquare className="h-5 w-5" /> Recent Messages
-                  </h2>
+                <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-lifewood-saffron">
+                        <MessageSquare className="h-5 w-5" /> Recent Messages
+                      </h2>
+                      <p className="mt-1 text-sm text-white/52">A quick scan of the latest contact requests coming through the site.</p>
+                    </div>
+                  </div>
                   {showContactLoading ? (
                     <p className="mt-4 text-white/60">Loading…</p>
                   ) : contactMessages.length === 0 ? (
                     <p className="mt-4 text-white/60">No messages yet.</p>
                   ) : (
-                    <ul className="mt-4 space-y-2">
+                    <ul className="mt-5 space-y-2.5">
                       {contactMessages.slice(0, 5).map((m) => (
                         <li
                           key={m.id}
-                          className={`flex items-center justify-between rounded-xl border px-3 py-2 cursor-pointer transition ${m.read ? 'border-white/10 bg-black/20 hover:bg-white/5' : 'border-lifewood-saffron/30 bg-lifewood-saffron/5 hover:bg-lifewood-saffron/10'}`}
+                          className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 cursor-pointer transition ${m.read ? 'border-white/10 bg-black/20 hover:bg-white/5' : 'border-lifewood-saffron/30 bg-lifewood-saffron/5 hover:bg-lifewood-saffron/10'}`}
                           onClick={() => setSelectedContact(m)}
                         >
-                          <span className="font-medium truncate">{m.first_name} {m.last_name}</span>
-                          <span className="text-xs text-white/60 truncate max-w-[140px]">{m.message.slice(0, 30)}…</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              {!m.read && <span className="h-2 w-2 rounded-full bg-lifewood-saffron" />}
+                              <p className="truncate font-medium text-white">{m.first_name} {m.last_name}</p>
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-white/45">{m.email}</p>
+                          </div>
+                          <span className="max-w-[12rem] truncate text-xs text-white/58">{getMessagePreview(m.message)}</span>
                         </li>
                       ))}
                     </ul>
                   )}
-                  <button onClick={() => setActiveSection('contact')} className="mt-4 text-sm font-semibold text-lifewood-saffron hover:underline">
-                    View all →
+                  <button onClick={() => setActiveSection('contact')} className="mt-5 text-sm font-semibold text-lifewood-saffron hover:underline">
+                    View all messages →
                   </button>
                 </article>
               </div>
@@ -471,87 +596,105 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           )}
 
           {activeSection === 'careers' && (
-            <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-              <div className="mb-5 rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] xl:items-end">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, email, position…"
-                    value={careerSearchInput}
-                    onChange={(e) => setCareerSearchInput(e.target.value)}
-                    className="w-full rounded-xl border border-white/15 bg-black/20 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/50 focus:border-lifewood-saffron/50 focus:outline-none"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr]">
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Status</span>
-                    <select
-                      value={careerFilter}
-                      onChange={(e) => setCareerFilter(e.target.value)}
-                      className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
-                    >
-                      <option value="all">All</option>
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {uniquePositions.length > 0 && (
-                    <label className="flex flex-col gap-1.5">
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Position</span>
-                      <select
-                        value={careerPositionFilter}
-                        onChange={(e) => setCareerPositionFilter(e.target.value)}
-                        className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
-                      >
-                        <option value="all">All</option>
-                        {uniquePositions.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <div className={`flex items-end gap-2 ${uniqueCountries.length > 0 ? 'sm:col-span-2' : ''}`}>
-                  {uniqueCountries.length > 0 && (
-                    <label className="min-w-0 flex-1 flex flex-col gap-1.5">
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Country</span>
-                      <select
-                        value={careerCountryFilter}
-                        onChange={(e) => setCareerCountryFilter(e.target.value)}
-                        className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
-                      >
-                        <option value="all">All</option>
-                        {uniqueCountries.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCareerFilter('all');
-                      setCareerPositionFilter('all');
-                      setCareerCountryFilter('all');
-                      setCareerSearchInput('');
-                    }}
-                    className="rounded-xl border border-white/15 bg-black/10 px-3 py-2.5 text-xs font-semibold text-white/70 hover:bg-white/10"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExportCareersCsv}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white hover:bg-white/15"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Export CSV
-                  </button>
+            <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+              <div className="mb-5 rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] p-4 md:p-5">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(430px,0.9fr)]">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/42">Candidate Search</p>
+                      <p className="mt-1 text-sm text-white/55">Filter applicants by identity, role, or country before reviewing.</p>
+                    </div>
+                    <div className="relative w-full">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="text"
+                        placeholder="Search by name, email, position..."
+                        value={careerSearchInput}
+                        onChange={(e) => setCareerSearchInput(e.target.value)}
+                        className="w-full rounded-2xl border border-white/12 bg-black/25 py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/38 focus:border-lifewood-saffron/50 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/42">Filters & Export</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Status</span>
+                        <select
+                          value={careerFilter}
+                          onChange={(e) => setCareerFilter(e.target.value)}
+                          className="w-full rounded-2xl border border-white/12 bg-black/25 px-3 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                        >
+                          <option value="all">All</option>
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {uniquePositions.length > 0 && (
+                        <label className="flex flex-col gap-1.5">
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Position</span>
+                          <select
+                            value={careerPositionFilter}
+                            onChange={(e) => setCareerPositionFilter(e.target.value)}
+                            className="w-full rounded-2xl border border-white/12 bg-black/25 px-3 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                          >
+                            <option value="all">All</option>
+                            {uniquePositions.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <div className={`flex items-end gap-2 ${uniqueCountries.length > 0 ? 'sm:col-span-2' : ''}`}>
+                        {uniqueCountries.length > 0 && (
+                          <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+                            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Country</span>
+                            <select
+                              value={careerCountryFilter}
+                              onChange={(e) => setCareerCountryFilter(e.target.value)}
+                              className="w-full rounded-2xl border border-white/12 bg-black/25 px-3 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                            >
+                              <option value="all">All</option>
+                              {uniqueCountries.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCareerFilter('all');
+                            setCareerPositionFilter('all');
+                            setCareerCountryFilter('all');
+                            setCareerSearchInput('');
+                          }}
+                          className="rounded-2xl border border-white/12 bg-black/10 px-3.5 py-3 text-xs font-semibold text-white/62 hover:bg-white/8"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportCareersCsv}
+                          className="inline-flex items-center gap-1.5 rounded-2xl border border-white/16 bg-white/6 px-4 py-3 text-xs font-semibold text-white hover:bg-white/12"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Export CSV
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-white/45">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                    {filteredCareers.length} application{filteredCareers.length === 1 ? '' : 's'} shown
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                    Sorted by newest
+                  </span>
+                </div>
               </div>
               {showCareersLoading ? (
                 <p className="py-8 text-center text-white/60">Loading applications…</p>
@@ -562,22 +705,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   {filteredCareers.map((app) => (
                     <article
                       key={app.id}
-                      className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-black/25 p-4 shadow-[0_18px_35px_rgba(0,0,0,0.55)] backdrop-blur-sm cursor-pointer transition hover:border-lifewood-saffron/60 hover:bg-black/40"
+                      className="group flex flex-col justify-between rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.22))] p-4 shadow-[0_18px_35px_rgba(0,0,0,0.45)] backdrop-blur-sm cursor-pointer transition hover:-translate-y-0.5 hover:border-lifewood-saffron/60 hover:bg-black/40"
                       onClick={() => setSelectedCareer(app)}
                     >
                       <header className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <h3 className="truncate text-sm font-semibold">
+                          <h3 className="truncate text-base font-semibold text-white">
                             {app.first_name} {app.last_name}
                           </h3>
-                          <p className="mt-0.5 truncate text-xs text-lifewood-saffron/90">
+                          <p className="mt-1 truncate text-sm font-medium text-lifewood-saffron/90">
                             {app.position_applied}
                           </p>
                         </div>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide ${
+                          className={`rounded-full px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-wide ${
                             app.status === 'submitted'
                               ? 'bg-lifewood-saffron/18 text-lifewood-saffron'
+                              : app.status === 'reviewed'
+                              ? 'bg-cyan-300/16 text-cyan-200'
                               : app.status === 'contacted'
                               ? 'bg-lifewood-castleton/26 text-emerald-200'
                               : app.status === 'rejected'
@@ -589,31 +734,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                         </span>
                       </header>
 
-                      <dl className="mt-3 space-y-1 text-[0.72rem] text-white/70">
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/40">Country</dt>
-                          <dd className="truncate text-right">{app.country}</dd>
+                      <dl className="mt-4 space-y-2 text-[0.76rem] text-white/70">
+                        <div className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2">
+                          <dt className="text-white/38">Country</dt>
+                          <dd className="truncate text-right font-medium text-white/82">{app.country}</dd>
                         </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/40">Submitted</dt>
-                          <dd className="truncate text-right">{formatDate(app.created_at)}</dd>
+                        <div className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2">
+                          <dt className="text-white/38">Submitted</dt>
+                          <dd className="truncate text-right font-medium text-white/72">{formatDate(app.created_at)}</dd>
                         </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-white/40">Email</dt>
-                          <dd className="truncate text-right max-w-[10rem] md:max-w-[12rem]">
+                        <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                          <dt className="text-white/38">Email</dt>
+                          <dd className="mt-1 truncate font-medium text-white/82">
                             {app.email}
                           </dd>
                         </div>
                       </dl>
 
-                      <footer className="mt-3 flex items-center justify-between gap-2">
+                      <footer className="mt-4 flex items-center justify-between gap-3 border-t border-white/8 pt-4">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDownloadResume(app);
                           }}
                           disabled={resumeLoading === app.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-white/18 bg-white/5 px-3 py-1.5 text-[0.72rem] font-semibold text-white hover:bg-white/12 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/16 bg-white/5 px-3.5 py-2 text-[0.74rem] font-semibold text-white hover:bg-white/12 disabled:opacity-50"
                         >
                           {resumeLoading === app.id ? (
                             'Downloading…'
@@ -630,7 +775,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                             e.stopPropagation();
                             setSelectedCareer(app);
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[0.7rem] font-semibold text-white/75 hover:text-white"
+                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[0.74rem] font-semibold text-white/75 hover:text-white"
                         >
                           Details
                           <ChevronDown className="h-3 w-3 rotate-[-90deg] transition group-hover:translate-x-0.5" />
@@ -650,27 +795,208 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               ) : contactMessages.length === 0 ? (
                 <p className="py-8 text-center text-white/60">No contact messages yet.</p>
               ) : (
-                <ul className="space-y-2">
-                  {contactMessages.map((m) => (
-                    <li
-                      key={m.id}
-                      className={`flex items-center justify-between rounded-xl border px-4 py-3 cursor-pointer transition ${m.read ? 'border-white/10 bg-black/20 hover:bg-white/5' : 'border-lifewood-saffron/30 bg-lifewood-saffron/5 hover:bg-lifewood-saffron/10'}`}
-                      onClick={() => {
-                        setSelectedContact(m);
-                        if (!m.read) {
-                          void handleMarkContactRead(m.id);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {!m.read && <span className="h-2 w-2 rounded-full bg-lifewood-saffron flex-shrink-0" />}
-                        <span className="font-medium truncate">{m.first_name} {m.last_name}</span>
-                        <span className="text-white/60 truncate hidden sm:inline">{m.email}</span>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.95fr)]">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-white/45">Inbox</p>
+                        <h2 className="mt-1 text-xl font-bold text-white">Contact queue</h2>
+                        <p className="mt-1 text-sm text-white/55">
+                          {filteredContacts.length} message{filteredContacts.length === 1 ? '' : 's'} shown, {unreadContactCount} unread
+                        </p>
                       </div>
-                      <span className="text-xs text-white/50 flex-shrink-0 ml-2">{formatDate(m.created_at)}</span>
-                    </li>
-                  ))}
-                </ul>
+                      <label className="relative block w-full sm:max-w-sm">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                        <input
+                          type="text"
+                          value={contactSearchInput}
+                          onChange={(event) => setContactSearchInput(event.target.value)}
+                          placeholder="Search sender, email, or message..."
+                          className="w-full rounded-xl border border-white/12 bg-black/25 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                        />
+                      </label>
+                    </div>
+
+                    {filteredContacts.length === 0 ? (
+                      <p className="py-10 text-center text-sm text-white/55">No messages match your search.</p>
+                    ) : (
+                      <div className="mt-4 space-y-2">
+                        {filteredContacts.map((m) => {
+                          const isSelected = selectedContact?.id === m.id;
+
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              className={`group w-full rounded-2xl border p-4 text-left transition ${
+                                isSelected
+                                  ? 'border-lifewood-saffron/55 bg-lifewood-saffron/8 shadow-[0_16px_34px_rgba(0,0,0,0.32)]'
+                                  : m.read
+                                  ? 'border-white/10 bg-black/15 hover:bg-white/6'
+                                  : 'border-lifewood-saffron/22 bg-lifewood-saffron/5 hover:bg-lifewood-saffron/10'
+                              }`}
+                              onClick={() => {
+                                setSelectedContact(m);
+                                setReplyError('');
+                                if (!m.read) {
+                                  void handleMarkContactRead(m.id);
+                                }
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className={`mt-1 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                                    m.read ? 'bg-white/8 text-white/70' : 'bg-lifewood-saffron/18 text-lifewood-saffron'
+                                  }`}
+                                >
+                                  {`${m.first_name[0] || ''}${m.last_name[0] || ''}`.toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="truncate text-sm font-semibold text-white">
+                                          {m.first_name} {m.last_name}
+                                        </p>
+                                        {!m.read && (
+                                          <span className="rounded-full bg-lifewood-saffron/14 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-lifewood-saffron">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="truncate text-xs text-white/50">{m.email}</p>
+                                    </div>
+                                    <p className="flex-shrink-0 text-[0.68rem] uppercase tracking-[0.12em] text-white/35">
+                                      {formatDate(m.created_at)}
+                                    </p>
+                                  </div>
+                                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-white/62">
+                                    {getMessagePreview(m.message)}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    {selectedContact ? (
+                      <div className="flex h-full flex-col">
+                        <div className="border-b border-white/10 pb-4">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-xs uppercase tracking-[0.18em] text-lifewood-saffron/80">Message Detail</p>
+                              <h3 className="mt-2 text-2xl font-bold text-white">
+                                {selectedContact.first_name} {selectedContact.last_name}
+                              </h3>
+                              <p className="mt-1 text-sm text-white/55">{selectedContact.email}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/35">Received</p>
+                              <p className="mt-1 text-sm text-white/65">{formatDate(selectedContact.created_at)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {!selectedContact.read && (
+                              <button
+                                onClick={() => handleMarkContactRead(selectedContact.id)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+                              >
+                                Mark as read
+                              </button>
+                            )}
+                            <a
+                              href={`mailto:${selectedContact.email}?subject=${encodeURIComponent('Lifewood Contact Response')}`}
+                              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Open in Mail
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.localStorage.setItem(
+                                  'ivaAdminContext',
+                                  JSON.stringify({ type: 'contact', data: selectedContact })
+                                );
+                                window.location.hash = 'iva';
+                              }}
+                              className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/35 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Ask Iva for reply ideas
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex-1 space-y-4">
+                          <div className="rounded-2xl border border-white/10 bg-[#0b110e] p-4">
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/38">Original Message</p>
+                            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white/82">
+                              {selectedContact.message}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl border border-white/10 bg-[#0b110e] p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-white/38">Reply Workspace</p>
+                                <p className="mt-1 text-sm text-white/55">Draft a reply here or let Iva prepare a starting point.</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleDraftReplyWithIva}
+                                disabled={draftingReplyWithIva}
+                                className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/40 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18 disabled:opacity-60"
+                              >
+                                {draftingReplyWithIva ? 'Drafting with Iva…' : 'Generate draft with Iva'}
+                              </button>
+                            </div>
+                            <textarea
+                              rows={8}
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              className="mt-4 w-full rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/60 focus:outline-none"
+                              placeholder="Write a clear, warm reply to the sender..."
+                            />
+                            {replyError && <p className="mt-3 text-xs text-red-300">{replyError}</p>}
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={handleSendContactReply}
+                                disabled={sendingReply || !replyText.trim()}
+                                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
+                              >
+                                {sendingReply ? 'Sending…' : 'Send reply'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReplyText('');
+                                  setReplyError('');
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/10"
+                              >
+                                Clear draft
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/12 bg-[#0b110e] px-6 text-center">
+                        <MessageSquare className="h-10 w-10 text-white/25" />
+                        <h3 className="mt-4 text-lg font-semibold text-white">Select a message</h3>
+                        <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/50">
+                          Pick a contact message from the inbox to review the full inquiry and draft your response.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </article>
           )}
@@ -766,86 +1092,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         </div>
       )}
 
-      {/* Contact detail modal */}
-      {selectedContact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedContact(null)}>
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setSelectedContact(null)} className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white">
-              <X className="h-5 w-5" />
-            </button>
-            {!selectedContact.read && (
-              <button
-                onClick={() => handleMarkContactRead(selectedContact.id)}
-                className="mb-4 text-sm font-medium text-lifewood-saffron hover:underline"
-              >
-                Mark as read
-              </button>
-            )}
-            <h3 className="text-xl font-bold text-lifewood-saffron">Contact message</h3>
-            <p className="mt-1 text-white/70">{selectedContact.first_name} {selectedContact.last_name} · {formatDate(selectedContact.created_at)}</p>
-            <p className="mt-2 text-white/60 text-sm">{selectedContact.email}</p>
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-white/90 whitespace-pre-wrap">
-              {selectedContact.message}
-            </div>
-            <div className="mt-5 space-y-3">
-              <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
-                Reply to sender
-              </label>
-              <button
-                type="button"
-                onClick={handleDraftReplyWithIva}
-                disabled={draftingReplyWithIva}
-                className="mb-1 inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/50 bg-lifewood-saffron/10 px-3 py-1.5 text-[0.72rem] font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/20 disabled:opacity-60"
-              >
-                {draftingReplyWithIva ? 'Letting Iva draft…' : 'Let Iva draft a reply'}
-              </button>
-              <textarea
-                rows={4}
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm text-white placeholder:text-white/40 focus:border-lifewood-saffron/60 focus:outline-none"
-                placeholder="Write your reply…"
-              />
-              {replyError && <p className="text-xs text-red-300">{replyError}</p>}
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSendContactReply}
-                  disabled={sendingReply || !replyText.trim()}
-                  className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
-                >
-                  {sendingReply ? (
-                    'Sending…'
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4" /> Send reply
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.localStorage.setItem(
-                      'ivaAdminContext',
-                      JSON.stringify({ type: 'contact', data: selectedContact })
-                    );
-                    window.location.hash = 'iva';
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
-                >
-                  Ask Iva about this message
-                </button>
-                <a
-                  href={`mailto:${selectedContact.email}`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold hover:bg-white/10"
-                >
-                  Open in email client
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

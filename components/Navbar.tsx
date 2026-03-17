@@ -8,6 +8,7 @@ interface NavbarProps {
   onNavigate: (page: Page) => void;
   onAdminAccess?: () => void;
   isAuthenticated?: boolean;
+  canAccessDashboard?: boolean;
   onLogout?: () => void;
 }
 
@@ -27,12 +28,14 @@ const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onAdminAccess,
   isAuthenticated = false,
+  canAccessDashboard = false,
   onLogout,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isHidden, setIsHidden] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
+  const logoTapTimeoutRef = useRef<number | null>(null);
   const { scrollY } = useScroll();
 
   const navItems: NavItem[] = [
@@ -70,6 +73,11 @@ const Navbar: React.FC<NavbarProps> = ({
     if (item.children) return item.children.some((child) => child.page === currentPage);
     return false;
   };
+  const showAuthenticatedActions =
+    isAuthenticated &&
+    canAccessDashboard &&
+    currentPage !== Page.HOME &&
+    currentPage !== Page.IVA;
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -84,6 +92,14 @@ const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (logoTapTimeoutRef.current !== null) {
+        window.clearTimeout(logoTapTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useMotionValueEvent(scrollY, 'change', (current) => {
     const previous = scrollY.getPrevious() ?? 0;
     if (isMenuOpen) {
@@ -96,6 +112,20 @@ const Navbar: React.FC<NavbarProps> = ({
       setIsHidden(false);
     }
   });
+
+  const handleLogoActivate = () => {
+    if (logoTapTimeoutRef.current !== null) {
+      window.clearTimeout(logoTapTimeoutRef.current);
+      logoTapTimeoutRef.current = null;
+      onAdminAccess?.();
+      return;
+    }
+
+    logoTapTimeoutRef.current = window.setTimeout(() => {
+      onNavigate(Page.HOME);
+      logoTapTimeoutRef.current = null;
+    }, 260);
+  };
 
   return (
     <motion.nav
@@ -114,9 +144,16 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="relative flex h-16 items-center justify-between px-4 md:px-6">
           <div
             className="flex shrink-0 cursor-pointer items-center gap-3"
-            onClick={() => onNavigate(Page.HOME)}
-            onDoubleClick={() => onAdminAccess?.()}
+            onClick={handleLogoActivate}
             title="Lifewood"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleLogoActivate();
+              }
+            }}
           >
             <img
               src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png"
@@ -182,7 +219,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
-            {isAuthenticated ? (
+            {showAuthenticatedActions ? (
               <>
                 <button
                   onClick={() => {
@@ -264,7 +301,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
-            {isAuthenticated ? (
+            {showAuthenticatedActions ? (
               <>
                 <button
                   onClick={() => {
