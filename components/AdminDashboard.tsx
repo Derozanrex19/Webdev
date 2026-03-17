@@ -74,6 +74,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [contactSearch, setContactSearch] = useState('');
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
+  const [careerMailModalOpen, setCareerMailModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [resumeLoading, setResumeLoading] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -342,20 +343,72 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   };
 
   const buildApplicantMailto = (app: CareerApplication) => {
-    const subject = `Lifewood Application Update - ${app.position_applied}`;
-    const body = [
-      `Hi ${app.first_name},`,
-      '',
-      `Thank you for applying for the ${app.position_applied} role at Lifewood.`,
-      'We reviewed your application and would like to move you forward to the next stage of the process.',
-      '',
-      'Please reply to this email so we can share the next steps with you.',
-      '',
-      'Best regards,',
-      'Lifewood Recruitment Team',
-    ].join('\n');
+    const status = app.status.toLowerCase();
 
-    return `mailto:${encodeURIComponent(app.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const contentByStatus: Record<string, { subject: string; body: string[] }> = {
+      submitted: {
+        subject: `Lifewood Application Received - ${app.position_applied}`,
+        body: [
+          `Hi ${app.first_name},`,
+          '',
+          `Thank you for applying for the ${app.position_applied} role at Lifewood.`,
+          'We have received your application and our team has started reviewing your submission.',
+          'We will contact you again once we complete the initial screening.',
+          '',
+          'Best regards,',
+          'Lifewood Recruitment Team',
+        ],
+      },
+      reviewed: {
+        subject: `Lifewood Application Update - ${app.position_applied}`,
+        body: [
+          `Hi ${app.first_name},`,
+          '',
+          `Thank you for your patience while we reviewed your application for the ${app.position_applied} role.`,
+          'Your profile is currently under active consideration and we are finalizing the next steps for this stage.',
+          'We will send you another update as soon as the review process is completed.',
+          '',
+          'Best regards,',
+          'Lifewood Recruitment Team',
+        ],
+      },
+      contacted: {
+        subject: `Next Stage with Lifewood - ${app.position_applied}`,
+        body: [
+          `Hi ${app.first_name},`,
+          '',
+          `Thank you for applying for the ${app.position_applied} role at Lifewood.`,
+          'We reviewed your application and would like to move you forward to the next stage of the process.',
+          'Please reply to this email so we can share the next steps with you.',
+          '',
+          'Best regards,',
+          'Lifewood Recruitment Team',
+        ],
+      },
+      rejected: {
+        subject: `Lifewood Application Update - ${app.position_applied}`,
+        body: [
+          `Hi ${app.first_name},`,
+          '',
+          `Thank you for taking the time to apply for the ${app.position_applied} role at Lifewood.`,
+          'After careful review, we have decided not to move forward with your application for this position.',
+          'We appreciate your interest in Lifewood and encourage you to apply again for future opportunities that match your experience.',
+          '',
+          'Best regards,',
+          'Lifewood Recruitment Team',
+        ],
+      },
+    };
+
+    const fallback = contentByStatus.contacted;
+    const draft = contentByStatus[status] || fallback;
+    const body = draft.body.join('\n');
+
+    return {
+      subject: draft.subject,
+      body,
+      url: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(app.email)}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(body)}`,
+    };
   };
 
   const formatDate = (s: string) => {
@@ -1042,7 +1095,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 </select>
               </div>
               <a
-                href={buildApplicantMailto(selectedCareer)}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCareerMailModalOpen(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
               >
                 <Mail className="h-4 w-4" />
@@ -1088,6 +1145,88 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {careerMailModalOpen && selectedCareer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setCareerMailModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setCareerMailModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Contact Applicant</p>
+            <h3 className="mt-2 text-2xl font-bold text-white">Open Gmail with a status-based draft</h3>
+            <p className="mt-2 text-sm text-white/62">
+              The draft below is generated from the applicant&apos;s current status in the review panel.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.2fr]">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/42">Applicant</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {selectedCareer.first_name} {selectedCareer.last_name}
+                </p>
+                <p className="mt-1 text-sm text-white/58">{selectedCareer.email}</p>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <p className="text-white/38">Position</p>
+                    <p className="mt-1 font-medium text-white/84">{selectedCareer.position_applied}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/38">Current status</p>
+                    <p className="mt-1 font-medium capitalize text-white/84">{selectedCareer.status}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/42">Draft Preview</p>
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <p className="text-white/38">Subject</p>
+                    <p className="mt-1 text-sm font-medium text-white/86">
+                      {buildApplicantMailto(selectedCareer).subject}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-white/38">Body</p>
+                    <div className="mt-2 rounded-2xl border border-white/8 bg-[#0b110e] p-4 text-sm leading-7 text-white/74 whitespace-pre-wrap">
+                      {buildApplicantMailto(selectedCareer).body}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCareerMailModalOpen(false)}
+                className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/78 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <a
+                href={buildApplicantMailto(selectedCareer).url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setCareerMailModalOpen(false)}
+                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth"
+              >
+                <Mail className="h-4 w-4" />
+                Open Gmail
+              </a>
+            </div>
           </div>
         </div>
       )}
