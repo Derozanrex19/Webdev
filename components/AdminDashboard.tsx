@@ -1151,11 +1151,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
       {careerMailModalOpen && selectedCareer && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
           onClick={() => setCareerMailModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-2xl rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
+            className="relative my-6 flex w-full max-w-2xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -1170,7 +1170,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               The draft below is generated from the applicant&apos;s current status in the review panel.
             </p>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.2fr]">
+            <div className="mt-5 grid flex-1 gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.2fr]">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-white/42">Applicant</p>
                 <p className="mt-2 text-lg font-semibold text-white">
@@ -1200,7 +1200,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   </div>
                   <div>
                     <p className="text-white/38">Body</p>
-                    <div className="mt-2 rounded-2xl border border-white/8 bg-[#0b110e] p-4 text-sm leading-7 text-white/74 whitespace-pre-wrap">
+                    <div className="mt-2 max-h-[50vh] overflow-y-auto rounded-2xl border border-white/8 bg-[#0b110e] p-4 text-sm leading-7 text-white/74 whitespace-pre-wrap">
                       {buildApplicantMailto(selectedCareer).body}
                     </div>
                   </div>
