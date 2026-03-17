@@ -297,6 +297,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     setResumeLoading(null);
   };
 
+  const buildApplicantMailto = (app: CareerApplication) => {
+    const subject = `Lifewood Application Update - ${app.position_applied}`;
+    const body = [
+      `Hi ${app.first_name},`,
+      '',
+      `Thank you for applying for the ${app.position_applied} role at Lifewood.`,
+      'We reviewed your application and would like to move you forward to the next stage of the process.',
+      '',
+      'Please reply to this email so we can share the next steps with you.',
+      '',
+      'Best regards,',
+      'Lifewood Recruitment Team',
+    ].join('\n');
+
+    return `mailto:${encodeURIComponent(app.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const formatDate = (s: string) => {
     const d = new Date(s);
     return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' });
@@ -455,8 +472,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
           {activeSection === 'careers' && (
             <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
-              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div className="relative w-full lg:max-w-sm">
+              <div className="mb-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] xl:items-end">
+                <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
                   <input
                     type="text"
@@ -466,49 +484,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     className="w-full rounded-xl border border-white/15 bg-black/20 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/50 focus:border-lifewood-saffron/50 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-white/60">Status:</span>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr]">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Status</span>
                     <select
                       value={careerFilter}
                       onChange={(e) => setCareerFilter(e.target.value)}
-                      className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                      className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
                     >
                       <option value="all">All</option>
                       {STATUS_OPTIONS.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                  </div>
+                  </label>
                   {uniquePositions.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-white/60">Position:</span>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Position</span>
                       <select
                         value={careerPositionFilter}
                         onChange={(e) => setCareerPositionFilter(e.target.value)}
-                        className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                        className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
                       >
                         <option value="all">All</option>
                         {uniquePositions.map((p) => (
                           <option key={p} value={p}>{p}</option>
                         ))}
                       </select>
-                    </div>
+                    </label>
                   )}
+                  <div className={`flex items-end gap-2 ${uniqueCountries.length > 0 ? 'sm:col-span-2' : ''}`}>
                   {uniqueCountries.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-white/60">Country:</span>
+                    <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Country</span>
                       <select
                         value={careerCountryFilter}
                         onChange={(e) => setCareerCountryFilter(e.target.value)}
-                        className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                        className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
                       >
                         <option value="all">All</option>
                         {uniqueCountries.map((c) => (
                           <option key={c} value={c}>{c}</option>
                         ))}
                       </select>
-                    </div>
+                    </label>
                   )}
                   <button
                     type="button"
@@ -518,19 +537,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                       setCareerCountryFilter('all');
                       setCareerSearchInput('');
                     }}
-                    className="rounded-xl border border-white/15 bg-black/10 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/10"
+                    className="rounded-xl border border-white/15 bg-black/10 px-3 py-2.5 text-xs font-semibold text-white/70 hover:bg-white/10"
                   >
                     Clear
                   </button>
                   <button
                     type="button"
                     onClick={handleExportCareersCsv}
-                    className="inline-flex items-center gap-1 rounded-xl border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white hover:bg-white/15"
                   >
                     <FileText className="h-3.5 w-3.5" />
                     Export CSV
                   </button>
+                  </div>
                 </div>
+              </div>
               </div>
               {showCareersLoading ? (
                 <p className="py-8 text-center text-white/60">Loading applications…</p>
@@ -694,6 +715,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   ))}
                 </select>
               </div>
+              <a
+                href={buildApplicantMailto(selectedCareer)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+              >
+                <Mail className="h-4 w-4" />
+                Contact Applicant
+              </a>
               <button
                 type="button"
                 onClick={() => {

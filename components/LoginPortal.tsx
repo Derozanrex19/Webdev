@@ -4,13 +4,14 @@ import GradientText from './GradientText';
 import Grainient from './Grainient';
 
 interface LoginPortalProps {
+  adminOnly?: boolean;
   onLogin: (email: string, password: string) => Promise<{ ok: boolean; error?: string; message?: string; requiresOtp?: boolean; email?: string }>;
   onSignup: (email: string, password: string, displayName: string) => Promise<{ ok: boolean; error?: string; message?: string; requiresOtp?: boolean; email?: string }>;
   onVerifyOtp: (email: string, token: string) => Promise<{ ok: boolean; error?: string; message?: string }>;
   onResendOtp: (email: string) => Promise<{ ok: boolean; error?: string; message?: string }>;
 }
 
-const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOtp, onResendOtp }) => {
+const LoginPortal: React.FC<LoginPortalProps> = ({ adminOnly = false, onLogin, onSignup, onVerifyOtp, onResendOtp }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -36,6 +37,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
   );
 
   const switchMode = (nextMode: 'login' | 'signup') => {
+    if (adminOnly) return;
     setMode(nextMode);
     setError('');
     setSuccess('');
@@ -160,13 +162,25 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
               direction="horizontal"
               pauseOnHover
             >
-              Lifewood Internal
-              <br />
-              Identity Gateway
+              {adminOnly ? (
+                <>
+                  Lifewood Admin
+                  <br />
+                  Access Portal
+                </>
+              ) : (
+                <>
+                  Lifewood Internal
+                  <br />
+                  Identity Gateway
+                </>
+              )}
             </GradientText>
           </h1>
           <p className="login-item mt-4 max-w-xl text-base leading-relaxed text-lifewood-darkSerpent/75 md:text-[1.12rem]">
-            Enterprise-ready sign-in experience designed for internal tools and role-based workspace access.
+            {adminOnly
+              ? 'Restricted administrative sign-in for authorized Lifewood operators. Access is intentionally hidden from the public website flow.'
+              : 'Enterprise-ready sign-in experience designed for internal tools and role-based workspace access.'}
           </p>
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="login-item rounded-2xl border border-lifewood-castleton/18 bg-lifewood-seasalt/85 p-4">
@@ -185,8 +199,8 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
         </article>
 
         <div className="login-motion lg:col-span-5" style={{ animationDelay: '120ms' }}>
-          <div className={`authc-container ${mode === 'signup' ? 'right-panel-active' : ''}`}>
-            <div className="authc-form-container authc-sign-up-container">
+          <div className={`authc-container ${mode === 'signup' ? 'right-panel-active' : ''} ${adminOnly ? 'authc-container--admin' : ''}`}>
+            {!adminOnly && <div className="authc-form-container authc-sign-up-container">
               <form onSubmit={(event) => handleSubmit('signup', event)} className="authc-form">
                 <h2 className="authc-title">Create Account</h2>
                 <p className="authc-subtitle">Use your email to register and continue.</p>
@@ -244,12 +258,14 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
                   {isSubmitting ? 'Please wait...' : 'Create Account'}
                 </button>
               </form>
-            </div>
+            </div>}
 
             <div className="authc-form-container authc-sign-in-container">
               <form onSubmit={(event) => handleSubmit('login', event)} className="authc-form">
-                <h2 className="authc-title">Sign In</h2>
-                <p className="authc-subtitle">Use your account credentials to continue.</p>
+                <h2 className="authc-title">{adminOnly ? 'Admin Sign In' : 'Sign In'}</h2>
+                <p className="authc-subtitle">
+                  {adminOnly ? 'Use your administrator credentials to continue.' : 'Use your account credentials to continue.'}
+                </p>
                 <label className="authc-input-wrap">
                   <User className="h-4 w-4 text-lifewood-castleton" />
                   <input
@@ -284,7 +300,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
               </form>
             </div>
 
-            <div className="authc-overlay-container">
+            {!adminOnly && <div className="authc-overlay-container">
               <div className="authc-overlay">
                 <div className="authc-overlay-panel authc-overlay-left">
                   <h3>Welcome Back!</h3>
@@ -301,7 +317,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
                   </button>
                 </div>
               </div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -400,6 +416,10 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
           min-height: 560px;
         }
 
+        .authc-container--admin {
+          min-height: 620px;
+        }
+
         .authc-form-container {
           position: absolute;
           top: 0;
@@ -411,6 +431,10 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
           left: 0;
           width: 50%;
           z-index: 2;
+        }
+
+        .authc-container--admin .authc-sign-in-container {
+          width: 100%;
         }
 
         .authc-container.right-panel-active .authc-sign-in-container {
@@ -440,6 +464,10 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
           height: 100%;
           text-align: center;
           gap: 10px;
+        }
+
+        .authc-container--admin .authc-form {
+          padding: 0 44px;
         }
 
         .authc-title {
@@ -619,6 +647,9 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
           .authc-container {
             min-height: 640px;
           }
+          .authc-container--admin {
+            min-height: 560px;
+          }
           .authc-form-container,
           .authc-sign-in-container,
           .authc-sign-up-container {
@@ -628,6 +659,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin, onSignup, onVerifyOt
             opacity: 1 !important;
           }
           .authc-sign-up-container { display: none; }
+          .authc-container--admin .authc-sign-in-container { display: block; width: 100%; }
           .authc-container.right-panel-active .authc-sign-in-container { display: none; }
           .authc-container.right-panel-active .authc-sign-up-container { display: block; }
           .authc-overlay-container { display: none; }

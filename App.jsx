@@ -107,6 +107,7 @@ const App = () => {
   );
 
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
+  const [loginIntent, setLoginIntent] = useState('admin');
   const forceNavigateTo = useCallback(
     (page) => {
       setCurrentPage(page);
@@ -123,6 +124,7 @@ const App = () => {
   const navigateTo = useCallback(
     (page) => {
       if (page === Page.INTERNAL && !isAuthenticated) {
+        setLoginIntent('admin');
         page = Page.LOGIN;
       }
       setCurrentPage(page);
@@ -135,6 +137,11 @@ const App = () => {
     },
     [isAuthenticated, pageToHash]
   );
+
+  const openAdminAccess = useCallback(() => {
+    setLoginIntent('admin');
+    forceNavigateTo(Page.LOGIN);
+  }, [forceNavigateTo]);
 
   const handleLogin = useCallback(
     async (email, password) => {
@@ -338,6 +345,7 @@ const App = () => {
       case Page.LOGIN:
         return (
           <LoginPortal
+            adminOnly={loginIntent === 'admin'}
             onLogin={handleLogin}
             onSignup={handleSignup}
             onVerifyOtp={handleVerifyOtp}
@@ -421,6 +429,7 @@ const App = () => {
         <Navbar
           currentPage={currentPage}
           onNavigate={navigateTo}
+          onAdminAccess={openAdminAccess}
           isAuthenticated={isAuthenticated}
           onLogout={handleLogout}
         />

@@ -6,6 +6,7 @@ import { Page } from '../types';
 interface NavbarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
+  onAdminAccess?: () => void;
   isAuthenticated?: boolean;
   onLogout?: () => void;
 }
@@ -24,6 +25,7 @@ interface NavItem {
 const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
+  onAdminAccess,
   isAuthenticated = false,
   onLogout,
 }) => {
@@ -110,7 +112,12 @@ const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="nav-glass-shell relative isolate mx-auto max-w-7xl overflow-visible rounded-full">
         <div className="relative flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex shrink-0 cursor-pointer items-center gap-3" onClick={() => onNavigate(Page.HOME)}>
+          <div
+            className="flex shrink-0 cursor-pointer items-center gap-3"
+            onClick={() => onNavigate(Page.HOME)}
+            onDoubleClick={() => onAdminAccess?.()}
+            title="Lifewood"
+          >
             <img
               src="https://framerusercontent.com/images/BZSiFYgRc4wDUAuEybhJbZsIBQY.png"
               alt="Lifewood"
@@ -198,19 +205,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   Log Out
                 </button>
               </>
-            ) : (
-              <button
-                onClick={() => {
-                  onNavigate(Page.LOGIN);
-                  setOpenDropdown(null);
-                }}
-                className={`rounded-full border border-lifewood-darkSerpent/20 px-3 py-1.5 text-sm font-semibold transition ${
-                  currentPage === Page.LOGIN ? 'bg-white/70 text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-white/70'
-                }`}
-              >
-                Log In
-              </button>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-center gap-1 lg:hidden">
@@ -292,19 +287,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   Log Out
                 </button>
               </>
-            ) : (
-              <button
-                onClick={() => {
-                  onNavigate(Page.LOGIN);
-                  setIsMenuOpen(false);
-                }}
-                className={`block w-full rounded-xl px-3 py-2 text-left text-base font-semibold transition ${
-                  currentPage === Page.LOGIN ? 'bg-lifewood-seasalt text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-lifewood-seasalt'
-                }`}
-              >
-                Log In
-              </button>
-            )}
+            ) : null}
           </div>
         </div>
       )}
