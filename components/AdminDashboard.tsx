@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  AlertCircle,
+  BarChart3,
   Briefcase,
+  CheckCircle2,
+  ClipboardList,
   FileText,
   Home,
   LogOut,
@@ -9,6 +13,7 @@ import {
   Search,
   ShieldCheck,
   Download,
+  Eye,
   X,
   ChevronDown,
 } from 'lucide-react';
@@ -19,6 +24,11 @@ import GhostLoader from './GhostLoader';
 
 const CAREER_BUCKET = 'career-documents';
 const STATUS_OPTIONS = ['submitted', 'reviewed', 'contacted', 'rejected'] as const;
+const CAREER_FILTERS_KEY = 'lifewood-career-filters';
+const CAREER_NOTES_KEY = 'lifewood-career-notes';
+const ACTIVITY_LOG_KEY = 'lifewood-admin-activities';
+const CONTACT_HISTORY_KEY = 'lifewood-contact-history';
+const CAREER_VIEW_MODE_KEY = 'lifewood-career-view-mode';
 
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
@@ -60,6 +70,52 @@ type ContactSubmission = {
   created_at: string;
 };
 
+type ActivityItem = {
+  id: string;
+  type: 'status' | 'reply' | 'note' | 'contact';
+  title: string;
+  detail: string;
+  createdAt: string;
+};
+
+type ContactHistoryItem = {
+  id: string;
+  applicantId: string;
+  applicantName: string;
+  status: string;
+  subject: string;
+  createdAt: string;
+};
+
+type CareerViewMode = 'cards' | 'table';
+
+const STATUS_META: Record<string, { label: string; badge: string; panel: string; dot: string }> = {
+  submitted: {
+    label: 'Submitted',
+    badge: 'bg-lifewood-saffron/18 text-lifewood-saffron',
+    panel: 'border-lifewood-saffron/18 bg-lifewood-saffron/5',
+    dot: 'bg-lifewood-saffron',
+  },
+  reviewed: {
+    label: 'Reviewed',
+    badge: 'bg-cyan-300/16 text-cyan-200',
+    panel: 'border-cyan-300/14 bg-cyan-300/5',
+    dot: 'bg-cyan-300',
+  },
+  contacted: {
+    label: 'Contacted',
+    badge: 'bg-lifewood-castleton/26 text-emerald-200',
+    panel: 'border-emerald-300/14 bg-emerald-300/5',
+    dot: 'bg-emerald-300',
+  },
+  rejected: {
+    label: 'Rejected',
+    badge: 'bg-red-500/22 text-red-200',
+    panel: 'border-red-300/14 bg-red-300/5',
+    dot: 'bg-red-300',
+  },
+};
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, onGoHome }) => {
   const [activeSection, setActiveSection] = useState<AdminSection>('overview');
   const [careerApps, setCareerApps] = useState<CareerApplication[]>([]);
@@ -73,9 +129,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [careerSearch, setCareerSearch] = useState('');
   const [contactSearchInput, setContactSearchInput] = useState('');
   const [contactSearch, setContactSearch] = useState('');
+  const [careerViewMode, setCareerViewMode] = useState<CareerViewMode>(() => {
+    try {
+      return (window.localStorage.getItem(CAREER_VIEW_MODE_KEY) as CareerViewMode) || 'cards';
+    } catch {
+      return 'cards';
+    }
+  });
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
   const [careerMailModalOpen, setCareerMailModalOpen] = useState(false);
+  const [resumePreviewUrl, setResumePreviewUrl] = useState<string | null>(null);
+  const [resumePreviewName, setResumePreviewName] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [resumeLoading, setResumeLoading] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -83,6 +148,97 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [replyError, setReplyError] = useState('');
   const [replySuccessOpen, setReplySuccessOpen] = useState(false);
   const [draftingReplyWithIva, setDraftingReplyWithIva] = useState(false);
+  const [careerNotes, setCareerNotes] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(CAREER_NOTES_KEY) || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [toast, setToast] = useState<{ title: string; detail?: string } | null>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(ACTIVITY_LOG_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [contactHistory, setContactHistory] = useState<ContactHistoryItem[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(CONTACT_HISTORY_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [selectedCareerIds, setSelectedCareerIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(CAREER_FILTERS_KEY) || '{}');
+      if (saved.careerFilter) setCareerFilter(saved.careerFilter);
+      if (saved.careerPositionFilter) setCareerPositionFilter(saved.careerPositionFilter);
+      if (saved.careerCountryFilter) setCareerCountryFilter(saved.careerCountryFilter);
+      if (saved.careerSearchInput) {
+        setCareerSearchInput(saved.careerSearchInput);
+        setCareerSearch(saved.careerSearchInput);
+      }
+      if (saved.contactSearchInput) {
+        setContactSearchInput(saved.contactSearchInput);
+        setContactSearch(saved.contactSearchInput);
+      }
+    } catch {
+      // Ignore malformed local storage data.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        CAREER_FILTERS_KEY,
+        JSON.stringify({
+          careerFilter,
+          careerPositionFilter,
+          careerCountryFilter,
+          careerSearchInput,
+          contactSearchInput,
+        })
+      );
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [careerCountryFilter, careerFilter, careerPositionFilter, careerSearchInput, contactSearchInput]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CAREER_VIEW_MODE_KEY, careerViewMode);
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [careerViewMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CAREER_NOTES_KEY, JSON.stringify(careerNotes));
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [careerNotes]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(activities.slice(0, 18)));
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [activities]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CONTACT_HISTORY_KEY, JSON.stringify(contactHistory.slice(0, 20)));
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [contactHistory]);
 
   const fetchCareers = useCallback(async () => {
     setLoadingCareers(true);
@@ -186,6 +342,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const unreadContactCount = contactMessages.filter((m) => !m.read).length;
   const showCareersLoading = loadingCareers && careerApps.length === 0;
   const showContactLoading = loadingContact && contactMessages.length === 0;
+  const selectedCareerNote = selectedCareer ? careerNotes[selectedCareer.id] || '' : '';
+  const selectedCareerHistory = selectedCareer
+    ? contactHistory.filter((item) => item.applicantId === selectedCareer.id).slice(0, 4)
+    : [];
+  const selectedCount = selectedCareerIds.length;
 
   const statusBreakdown = STATUS_OPTIONS.map((status) => ({
     status,
@@ -194,6 +355,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
   const uniquePositions = Array.from(new Set(careerApps.map((a) => a.position_applied))).sort();
   const uniqueCountries = Array.from(new Set(careerApps.map((a) => a.country))).sort();
+
+  const pushActivity = useCallback((item: Omit<ActivityItem, 'id' | 'createdAt'>) => {
+    setActivities((prev) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        ...item,
+      },
+      ...prev,
+    ].slice(0, 18));
+  }, []);
+
+  const openToast = useCallback((title: string, detail?: string) => {
+    setToast({ title, detail });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     if (activeSection !== 'contact') return;
@@ -219,18 +401,69 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     }
   }, [activeSection, filteredContacts, selectedContact]);
 
+  useEffect(() => {
+    setSelectedCareerIds((prev) => prev.filter((id) => filteredCareers.some((app) => app.id === id)));
+  }, [filteredCareers]);
+
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingStatus(true);
     await supabase.from('career_applications').update({ status }).eq('id', id);
     await fetchCareers();
+    const updatedCareer = careerApps.find((app) => app.id === id);
     if (selectedCareer?.id === id) setSelectedCareer((prev) => (prev ? { ...prev, status } : null));
+    if (updatedCareer) {
+      pushActivity({
+        type: 'status',
+        title: `${updatedCareer.first_name} ${updatedCareer.last_name} marked ${STATUS_META[status]?.label || status}`,
+        detail: `${updatedCareer.position_applied} · ${updatedCareer.email}`,
+      });
+      openToast('Status updated', `${updatedCareer.first_name} ${updatedCareer.last_name} is now ${status}.`);
+    }
     setUpdatingStatus(false);
+  };
+
+  const handleBulkUpdateStatus = async (status: string) => {
+    if (!selectedCareerIds.length) return;
+    setUpdatingStatus(true);
+    await supabase.from('career_applications').update({ status }).in('id', selectedCareerIds);
+    const affected = careerApps.filter((app) => selectedCareerIds.includes(app.id));
+    await fetchCareers();
+    setSelectedCareerIds([]);
+    if (affected.length) {
+      pushActivity({
+        type: 'status',
+        title: `${affected.length} applicant${affected.length === 1 ? '' : 's'} marked ${STATUS_META[status]?.label || status}`,
+        detail: affected.map((app) => `${app.first_name} ${app.last_name}`).join(', '),
+      });
+      openToast('Bulk update complete', `${affected.length} applicant${affected.length === 1 ? '' : 's'} moved to ${status}.`);
+    }
+    setUpdatingStatus(false);
+  };
+
+  const toggleCareerSelection = (id: string) => {
+    setSelectedCareerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllVisibleCareers = () => {
+    setSelectedCareerIds((prev) =>
+      prev.length === filteredCareers.length ? [] : filteredCareers.map((app) => app.id)
+    );
   };
 
   const handleMarkContactRead = async (id: string) => {
     await supabase.from('contact_submissions').update({ read: true }).eq('id', id);
     await fetchContact();
+    const contact = contactMessages.find((message) => message.id === id);
     if (selectedContact?.id === id) setSelectedContact((prev) => (prev ? { ...prev, read: true } : null));
+    if (contact && !contact.read) {
+      pushActivity({
+        type: 'contact',
+        title: `Marked ${contact.first_name} ${contact.last_name} as read`,
+        detail: contact.email,
+      });
+    }
   };
 
   const handleSendContactReply = async () => {
@@ -252,6 +485,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         last_name: selectedContact.last_name,
         reply_body: replyText.trim(),
       });
+      pushActivity({
+        type: 'reply',
+        title: `Reply sent to ${selectedContact.first_name} ${selectedContact.last_name}`,
+        detail: selectedContact.email,
+      });
+      openToast('Reply sent', `Your message to ${selectedContact.first_name} ${selectedContact.last_name} was delivered.`);
       setReplyText('');
       setReplySuccessOpen(true);
     } catch (err) {
@@ -343,6 +582,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     setResumeLoading(null);
   };
 
+  const handlePreviewResume = async (app: CareerApplication) => {
+    setResumeLoading(app.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from(CAREER_BUCKET)
+        .createSignedUrl(app.resume_path, 60);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        setResumePreviewUrl(data.signedUrl);
+        setResumePreviewName(app.resume_file_name);
+      }
+    } catch {
+      const { data } = supabase.storage.from(CAREER_BUCKET).getPublicUrl(app.resume_path);
+      setResumePreviewUrl(data.publicUrl);
+      setResumePreviewName(app.resume_file_name);
+    }
+    setResumeLoading(null);
+  };
+
+  const saveCareerNote = (career: CareerApplication, note: string) => {
+    setCareerNotes((prev) => ({ ...prev, [career.id]: note }));
+    pushActivity({
+      type: 'note',
+      title: `Note updated for ${career.first_name} ${career.last_name}`,
+      detail: note.trim() ? note.trim().slice(0, 120) : 'Note cleared',
+    });
+    openToast('Note saved', `Private note updated for ${career.first_name} ${career.last_name}.`);
+  };
+
   const buildApplicantMailto = (app: CareerApplication) => {
     const status = app.status.toLowerCase();
 
@@ -412,6 +680,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     };
   };
 
+  const logApplicantContact = (app: CareerApplication) => {
+    const draft = buildApplicantMailto(app);
+    setContactHistory((prev) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        applicantId: app.id,
+        applicantName: `${app.first_name} ${app.last_name}`,
+        status: app.status,
+        subject: draft.subject,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ].slice(0, 20));
+    pushActivity({
+      type: 'contact',
+      title: `Contact draft opened for ${app.first_name} ${app.last_name}`,
+      detail: draft.subject,
+    });
+    openToast('Gmail draft opened', `Prepared a ${app.status} email for ${app.first_name} ${app.last_name}.`);
+  };
+
   const formatDate = (s: string) => {
     const d = new Date(s);
     return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' });
@@ -421,6 +710,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     const normalized = message.replace(/\s+/g, ' ').trim();
     if (normalized.length <= 120) return normalized;
     return `${normalized.slice(0, 117)}...`;
+  };
+
+  const getCandidateReadiness = (app: CareerApplication) => {
+    const communication = app.email && app.phone_number ? 'Strong' : 'Needs follow-up';
+    const completeness = app.current_address && app.resume_file_name ? 'Complete' : 'Partial';
+    const marketFit =
+      app.status === 'contacted'
+        ? 'High'
+        : app.status === 'reviewed'
+        ? 'Promising'
+        : app.status === 'submitted'
+        ? 'Pending'
+        : 'Closed';
+
+    return { communication, completeness, marketFit };
   };
 
   return (
@@ -650,12 +954,95 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   </button>
                 </article>
               </div>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+                <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+                        <ClipboardList className="h-5 w-5 text-lifewood-saffron" />
+                        Activity Timeline
+                      </h2>
+                      <p className="mt-1 text-sm text-white/52">A running log of admin decisions, replies, and follow-ups.</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
+                      {activities.length} recent events
+                    </span>
+                  </div>
+                  {activities.length === 0 ? (
+                    <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-black/20 px-5 py-10 text-center text-sm text-white/50">
+                      Timeline events will appear here once the admin starts reviewing candidates and replying to messages.
+                    </div>
+                  ) : (
+                    <ol className="mt-5 space-y-3">
+                      {activities.slice(0, 6).map((item) => (
+                        <li key={item.id} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <span
+                              className={`mt-1 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
+                                item.type === 'status'
+                                  ? 'bg-lifewood-saffron/15 text-lifewood-saffron'
+                                  : item.type === 'reply'
+                                  ? 'bg-cyan-300/12 text-cyan-200'
+                                  : item.type === 'note'
+                                  ? 'bg-white/8 text-white/80'
+                                  : 'bg-emerald-300/12 text-emerald-200'
+                              }`}
+                            >
+                              {item.type === 'status' ? <CheckCircle2 className="h-4 w-4" /> : item.type === 'reply' ? <Mail className="h-4 w-4" /> : item.type === 'note' ? <FileText className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="font-medium text-white">{item.title}</p>
+                              <p className="mt-1 text-sm text-white/58">{item.detail}</p>
+                              <p className="mt-2 text-xs uppercase tracking-[0.12em] text-white/35">{formatDate(item.createdAt)}</p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </article>
+
+                <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+                        <BarChart3 className="h-5 w-5 text-lifewood-saffron" />
+                        Review Pipeline
+                      </h2>
+                      <p className="mt-1 text-sm text-white/52">A quick visual read on where candidates are currently sitting.</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-4">
+                    {statusBreakdown.map(({ status, count }) => {
+                      const percentage = careerApps.length ? Math.round((count / careerApps.length) * 100) : 0;
+                      return (
+                        <div key={status}>
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className={`h-2.5 w-2.5 rounded-full ${STATUS_META[status].dot}`} />
+                              <span className="font-medium text-white">{STATUS_META[status].label}</span>
+                            </div>
+                            <span className="text-white/55">{count} · {percentage}%</span>
+                          </div>
+                          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/6">
+                            <div
+                              className={`h-full rounded-full ${STATUS_META[status].dot}`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              </div>
             </>
           )}
 
           {activeSection === 'careers' && (
             <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
-              <div className="mb-5 rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] p-4 md:p-5">
+              <div className="sticky top-4 z-10 mb-5 rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] p-4 md:p-5 backdrop-blur-sm">
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(430px,0.9fr)]">
                   <div className="space-y-3">
                     <div>
@@ -752,15 +1139,70 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
                     Sorted by newest
                   </span>
+                  <div className="ml-auto inline-flex rounded-full border border-white/10 bg-white/5 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setCareerViewMode('cards')}
+                      className={`rounded-full px-3 py-1.5 font-medium ${careerViewMode === 'cards' ? 'bg-lifewood-saffron text-lifewood-darkSerpent' : 'text-white/65'}`}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCareerViewMode('table')}
+                      className={`rounded-full px-3 py-1.5 font-medium ${careerViewMode === 'table' ? 'bg-lifewood-saffron text-lifewood-darkSerpent' : 'text-white/65'}`}
+                    >
+                      Table
+                    </button>
+                  </div>
                 </div>
+                {selectedCount > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-lifewood-saffron/22 bg-lifewood-saffron/6 px-4 py-3 text-sm">
+                    <span className="font-semibold text-lifewood-saffron">{selectedCount} selected</span>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkUpdateStatus('reviewed')}
+                      className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-300/18"
+                    >
+                      Mark reviewed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkUpdateStatus('contacted')}
+                      className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-300/18"
+                    >
+                      Move to next stage
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkUpdateStatus('rejected')}
+                      className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-300/18"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCareerIds([])}
+                      className="ml-auto rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                )}
               </div>
               {showCareersLoading ? (
                 <div className="flex justify-center py-8">
                   <GhostLoader label="Loading applications" scale={0.24} />
                 </div>
               ) : filteredCareers.length === 0 ? (
-                <p className="py-8 text-center text-white/60">No applications match.</p>
-              ) : (
+                <div className="rounded-3xl border border-dashed border-white/10 bg-black/20 px-6 py-12 text-center">
+                  <Briefcase className="mx-auto h-10 w-10 text-white/20" />
+                  <h3 className="mt-4 text-lg font-semibold text-white">No matching applications</h3>
+                  <p className="mt-2 text-sm text-white/52">
+                    Try clearing the current search and filters to bring applicants back into view.
+                  </p>
+                </div>
+              ) : careerViewMode === 'cards' ? (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredCareers.map((app) => (
                     <article
@@ -770,6 +1212,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     >
                       <header className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
+                          <label
+                            className="mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/45"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCareerIds.includes(app.id)}
+                              onChange={() => toggleCareerSelection(app.id)}
+                              className="h-4 w-4 rounded border-white/20 bg-black/20 text-lifewood-saffron focus:ring-lifewood-saffron/30"
+                            />
+                            Select
+                          </label>
                           <h3 className="truncate text-base font-semibold text-white">
                             {app.first_name} {app.last_name}
                           </h3>
@@ -778,17 +1232,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                           </p>
                         </div>
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-wide ${
-                            app.status === 'submitted'
-                              ? 'bg-lifewood-saffron/18 text-lifewood-saffron'
-                              : app.status === 'reviewed'
-                              ? 'bg-cyan-300/16 text-cyan-200'
-                              : app.status === 'contacted'
-                              ? 'bg-lifewood-castleton/26 text-emerald-200'
-                              : app.status === 'rejected'
-                              ? 'bg-red-500/22 text-red-200'
-                              : 'bg-white/10 text-white/80'
-                          }`}
+                          className={`rounded-full px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-wide ${STATUS_META[app.status]?.badge || 'bg-white/10 text-white/80'}`}
                         >
                           {app.status}
                         </span>
@@ -843,6 +1287,76 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                       </footer>
                     </article>
                   ))}
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/20">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-white/10 text-left">
+                      <thead className="bg-white/[0.03] text-xs uppercase tracking-[0.16em] text-white/42">
+                        <tr>
+                          <th className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={filteredCareers.length > 0 && selectedCount === filteredCareers.length}
+                              onChange={toggleAllVisibleCareers}
+                              className="h-4 w-4 rounded border-white/20 bg-black/20 text-lifewood-saffron focus:ring-lifewood-saffron/30"
+                            />
+                          </th>
+                          <th className="px-4 py-3">Candidate</th>
+                          <th className="px-4 py-3">Position</th>
+                          <th className="px-4 py-3">Country</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Submitted</th>
+                          <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/8 text-sm">
+                        {filteredCareers.map((app) => (
+                          <tr key={app.id} className="hover:bg-white/[0.03]">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedCareerIds.includes(app.id)}
+                                onChange={() => toggleCareerSelection(app.id)}
+                                className="h-4 w-4 rounded border-white/20 bg-black/20 text-lifewood-saffron focus:ring-lifewood-saffron/30"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-white">{app.first_name} {app.last_name}</p>
+                              <p className="mt-0.5 text-xs text-white/45">{app.email}</p>
+                            </td>
+                            <td className="px-4 py-3 text-white/78">{app.position_applied}</td>
+                            <td className="px-4 py-3 text-white/62">{app.country}</td>
+                            <td className="px-4 py-3">
+                              <span className={`rounded-full px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-wide ${STATUS_META[app.status]?.badge || 'bg-white/10 text-white/80'}`}>
+                                {app.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-white/55">{formatDate(app.created_at)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handlePreviewResume(app)}
+                                  className="inline-flex items-center gap-1 rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 hover:bg-white/10"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Preview
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCareer(app)}
+                                  className="inline-flex items-center gap-1 rounded-xl border border-lifewood-saffron/20 bg-lifewood-saffron/8 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/14"
+                                >
+                                  Review
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </article>
@@ -984,7 +1498,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                                   'ivaAdminContext',
                                   JSON.stringify({ type: 'contact', data: selectedContact })
                                 );
-                                window.location.hash = 'iva';
+                                window.dispatchEvent(new Event('open-iva'));
                               }}
                               className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/35 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18"
                             >
@@ -1081,6 +1595,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
             </button>
             <h3 className="text-xl font-bold text-lifewood-saffron">Application</h3>
             <p className="mt-1 text-white/70">{selectedCareer.first_name} {selectedCareer.last_name} · {selectedCareer.position_applied}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-wide ${STATUS_META[selectedCareer.status]?.badge || 'bg-white/10 text-white/80'}`}>
+                {STATUS_META[selectedCareer.status]?.label || selectedCareer.status}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] uppercase tracking-[0.12em] text-white/55">
+                Candidate profile
+              </span>
+            </div>
             <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
               <div><dt className="text-white/50">Email</dt><dd className="font-medium">{selectedCareer.email}</dd></div>
               <div><dt className="text-white/50">Phone</dt><dd>{selectedCareer.phone_code} {selectedCareer.phone_number}</dd></div>
@@ -1089,13 +1611,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               <div className="sm:col-span-2"><dt className="text-white/50">Address</dt><dd>{selectedCareer.current_address}</dd></div>
               <div className="sm:col-span-2"><dt className="text-white/50">Resume</dt><dd>{selectedCareer.resume_file_name}</dd></div>
             </dl>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {Object.entries(getCandidateReadiness(selectedCareer)).map(([key, value]) => (
+                <div key={key} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/42">{key.replace(/([A-Z])/g, ' $1')}</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+                </div>
+              ))}
+            </div>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => handleDownloadResume(selectedCareer)}
                 disabled={resumeLoading === selectedCareer.id}
                 className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-50"
               >
-                {resumeLoading === selectedCareer.id ? '…' : <><Download className="h-4 w-4" /> Download resume</>}
+                {resumeLoading === selectedCareer.id ? 'Downloading...' : <><Download className="h-4 w-4" /> Download resume</>}
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreviewResume(selectedCareer)}
+                disabled={resumeLoading === selectedCareer.id}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/84 hover:bg-white/10 disabled:opacity-60"
+              >
+                <Eye className="h-4 w-4" />
+                Preview resume
               </button>
               <div className="flex items-center gap-2">
                 <label className="text-white/60 text-sm">Status:</label>
@@ -1110,6 +1649,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   ))}
                 </select>
               </div>
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(selectedCareer.id, 'contacted')}
+                disabled={updatingStatus}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(selectedCareer.id, 'rejected')}
+                disabled={updatingStatus}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-300/18 disabled:opacity-60"
+              >
+                <AlertCircle className="h-4 w-4" />
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus(selectedCareer.id, 'reviewed')}
+                disabled={updatingStatus}
+                className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-300/18 disabled:opacity-60"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Request more info
+              </button>
               <a
                 href="#"
                 onClick={(e) => {
@@ -1128,12 +1694,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     'ivaAdminContext',
                     JSON.stringify({ type: 'career', data: selectedCareer })
                   );
-                  window.location.hash = 'iva';
+                  window.dispatchEvent(new Event('open-iva'));
                 }}
                 className="mt-2 inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
               >
                 Ask Iva about this candidate
               </button>
+            </div>
+            <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/42">Private Notes</p>
+                    <p className="mt-1 text-sm text-white/55">Capture interview impressions, follow-ups, or internal reminders.</p>
+                  </div>
+                </div>
+                <textarea
+                  rows={6}
+                  value={selectedCareerNote}
+                  onChange={(e) =>
+                    setCareerNotes((prev) => ({
+                      ...prev,
+                      [selectedCareer.id]: e.target.value,
+                    }))
+                  }
+                  onBlur={(e) => saveCareerNote(selectedCareer, e.target.value)}
+                  className="mt-4 w-full rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/60 focus:outline-none"
+                  placeholder="Add notes for the hiring team..."
+                />
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => saveCareerNote(selectedCareer, selectedCareerNote)}
+                    className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/75 hover:bg-white/10"
+                  >
+                    Save note
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/42">Contact History</p>
+                <p className="mt-1 text-sm text-white/55">Track when Gmail drafts were opened for this applicant.</p>
+                {selectedCareerHistory.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-6 text-sm text-white/50">
+                    No contact activity yet for this applicant.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {selectedCareerHistory.map((item) => (
+                      <div key={item.id} className="rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3">
+                        <p className="text-sm font-medium text-white">{item.subject}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/40">{item.status}</p>
+                        <p className="mt-2 text-xs text-white/48">{formatDate(item.createdAt)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1236,7 +1853,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 href={buildApplicantMailto(selectedCareer).url}
                 target="_blank"
                 rel="noreferrer"
-                onClick={() => setCareerMailModalOpen(false)}
+                onClick={() => {
+                  logApplicantContact(selectedCareer);
+                  setCareerMailModalOpen(false);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth"
               >
                 <Mail className="h-4 w-4" />
@@ -1244,6 +1864,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               </a>
             </div>
           </div>
+        </div>
+      )}
+
+      {resumePreviewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setResumePreviewUrl(null)}>
+          <div className="relative flex h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0e1512]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-lifewood-saffron">Resume Preview</p>
+                <p className="mt-1 text-sm text-white/68">{resumePreviewName}</p>
+              </div>
+              <button onClick={() => setResumePreviewUrl(null)} className="rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <iframe src={resumePreviewUrl} title={resumePreviewName} className="h-full w-full bg-white" />
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 right-6 z-[60] max-w-sm rounded-2xl border border-white/12 bg-[#0d1512]/95 px-4 py-3 shadow-2xl backdrop-blur-sm">
+          <p className="text-sm font-semibold text-white">{toast.title}</p>
+          {toast.detail && <p className="mt-1 text-xs leading-6 text-white/62">{toast.detail}</p>}
         </div>
       )}
 

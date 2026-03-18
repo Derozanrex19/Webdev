@@ -69,6 +69,7 @@ const App = () => {
   const [authRole, setAuthRole] = useState('intern');
   const [authRoleLoaded, setAuthRoleLoaded] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [isIvaOpen, setIsIvaOpen] = useState(false);
   const isAuthenticated = Boolean(authUser);
 
   const normalizeRole = useCallback((role) => (role === 'admin' ? 'admin' : 'intern'), []);
@@ -124,6 +125,10 @@ const App = () => {
 
   const navigateTo = useCallback(
     (page) => {
+      if (page === Page.IVA) {
+        setIsIvaOpen(true);
+        return;
+      }
       if (page === Page.INTERNAL && !isAuthenticated) {
         setLoginIntent('admin');
         page = Page.LOGIN;
@@ -293,7 +298,14 @@ const App = () => {
 
   useEffect(() => {
     const handleHashChange = () => {
-      setCurrentPage(getPageFromHash());
+      const nextPage = getPageFromHash();
+      if (nextPage === Page.IVA) {
+        setIsIvaOpen(true);
+        window.history.replaceState(null, '', `#${pageToHash[Page.HOME]}`);
+        setCurrentPage(Page.HOME);
+        return;
+      }
+      setCurrentPage(nextPage);
     };
 
     if (!window.location.hash) {
@@ -303,6 +315,12 @@ const App = () => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [getPageFromHash, pageToHash]);
+
+  useEffect(() => {
+    const openIva = () => setIsIvaOpen(true);
+    window.addEventListener('open-iva', openIva);
+    return () => window.removeEventListener('open-iva', openIva);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -414,8 +432,6 @@ const App = () => {
         );
       case Page.OFFICES:
         return <Offices />;
-      case Page.IVA:
-        return <IvaChat />;
       case Page.CONTACT:
         return <Contact />;
       default:
@@ -442,9 +458,10 @@ const App = () => {
       <main className="flex-grow">
         {renderContent()}
       </main>
-      {currentPage !== Page.IVA && currentPage !== Page.LOGIN && (
-        <IvaFloatButton onNavigate={navigateTo} />
+      {currentPage !== Page.LOGIN && (
+        <IvaFloatButton onOpen={() => setIsIvaOpen(true)} />
       )}
+      <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} />
       {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && <Footer onNavigate={navigateTo} />}
     </div>
   );

@@ -1,29 +1,71 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Sparkles, Loader2, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Send, Bot, Sparkles, Loader2, X, Trash2 } from 'lucide-react';
 import { getIvaResponse } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
-const IvaChat: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'model',
-      text:
-        "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
-      timestamp: new Date(),
-    },
-  ]);
+interface IvaChatProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const initialMessage: ChatMessage = {
+  id: 'welcome',
+  role: 'model',
+  text:
+    "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
+  timestamp: new Date(),
+};
+
+const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
     const container = messagesContainerRef.current;
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+  }, [messages, isOpen]);
+
+  const submitPrompt = useCallback(async (prompt: string) => {
+    const trimmed = prompt.trim();
+    if (!trimmed) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: trimmed,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputText('');
+    setIsLoading(true);
+
+    try {
+      const historyForModel = [...messages, userMsg].map((m) => ({ role: m.role, text: m.text }));
+      const responseText = await getIvaResponse(trimmed, historyForModel);
+
+      const modelMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: responseText,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, modelMsg]);
+    } catch (error) {
+      console.error('Chat error', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [messages]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const raw = window.localStorage.getItem('ivaAdminContext');
     if (!raw) return;
     window.localStorage.removeItem('ivaAdminContext');
@@ -37,183 +79,149 @@ const IvaChat: React.FC = () => {
     if (!parsed) return;
 
     const { type, data } = parsed;
-    let question = '';
-    if (type === 'career') {
-      question = `You are Lifewood's virtual assistant helping an admin review a job application.\n\nCandidate name: ${data.first_name} ${data.last_name}\nPosition: ${data.position_applied}\nCountry: ${data.country}\nEmail: ${data.email}\nPhone: ${data.phone_code} ${data.phone_number}\nGender: ${data.gender}\nAge: ${data.age}\nAddress: ${data.current_address}\nStatus: ${data.status}\n\nSummarize this candidate in 3–4 sentences and suggest concise next steps for the recruiter. Be specific but brief.`;
-    } else {
-      question = `You are Lifewood's virtual assistant helping an admin respond to a contact message.\n\nSender: ${data.first_name} ${data.last_name}\nEmail: ${data.email}\nMessage:\n${data.message}\n\nFirst, summarize what this person is asking for in 1–2 sentences. Then suggest a short, warm, professional reply the admin could send (3–4 sentences).`;
-    }
+    const question =
+      type === 'career'
+        ? `You are Lifewood's virtual assistant helping an admin review a job application.\n\nCandidate name: ${data.first_name} ${data.last_name}\nPosition: ${data.position_applied}\nCountry: ${data.country}\nEmail: ${data.email}\nPhone: ${data.phone_code} ${data.phone_number}\nGender: ${data.gender}\nAge: ${data.age}\nAddress: ${data.current_address}\nStatus: ${data.status}\n\nSummarize this candidate in 3–4 sentences and suggest concise next steps for the recruiter. Be specific but brief.`
+        : `You are Lifewood's virtual assistant helping an admin respond to a contact message.\n\nSender: ${data.first_name} ${data.last_name}\nEmail: ${data.email}\nMessage:\n${data.message}\n\nFirst, summarize what this person is asking for in 1–2 sentences. Then suggest a short, warm, professional reply the admin could send (3–4 sentences).`;
 
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: question,
-      timestamp: new Date(),
+    void submitPrompt(question);
+  }, [isOpen, submitPrompt]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
-    const baseHistory = messages.map((m) => ({ role: m.role, text: m.text }));
-
-    const run = async () => {
-      setMessages((prev) => [...prev, userMsg]);
-      setIsLoading(true);
-      try {
-        const responseText = await getIvaResponse(question, [...baseHistory, { role: 'user', text: question }]);
-        const modelMsg: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'model',
-          text: responseText,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, modelMsg]);
-      } catch (error) {
-        console.error('Chat error', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    run();
-  }, []);
-
-  const handleSend = async () => {
-    if (!inputText.trim()) return;
-
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: inputText,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    setInputText('');
-    setIsLoading(true);
-
-    try {
-      const responseText = await getIvaResponse(
-        userMsg.text, 
-        messages.map(m => ({ role: m.role, text: m.text }))
-      );
-
-      const modelMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'model',
-        text: responseText,
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, modelMsg]);
-    } catch (error) {
-      console.error("Chat error", error);
-    } finally {
-      setIsLoading(false);
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void submitPrompt(inputText);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  const suggestedPrompts = [
+    'How does Lifewood ensure data accuracy?',
+    'Tell me about the Pottya initiative.',
+    'Where are your offices located?',
+  ];
+
+  if (!isOpen) return null;
 
   return (
-    <div className="bg-lifewood-paper min-h-[85vh] py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="bg-white max-w-5xl w-full rounded-3xl shadow-2xl border border-lifewood-darkSerpent/10 overflow-hidden flex flex-col md:flex-row h-[700px]">
-        
-        {/* Sidebar */}
-        <div className="md:w-1/3 bg-lifewood-darkSerpent text-lifewood-paper p-8 flex flex-col relative overflow-hidden">
-          {/* Abstract Circle decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-lifewood-castleton rounded-bl-full opacity-50"></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="bg-lifewood-saffron p-2 rounded-lg text-lifewood-darkSerpent">
-                <Bot className="w-6 h-6" />
+    <div className="fixed inset-0 z-[95]">
+      <div className="absolute inset-0 bg-[#08110d]/40 backdrop-blur-[2px]" onClick={onClose} />
+
+      <div className="absolute bottom-4 right-4 flex h-[min(78vh,720px)] w-[min(96vw,440px)] flex-col overflow-hidden rounded-[28px] border border-white/12 bg-[#0d1512]/96 shadow-[0_28px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:bottom-6 sm:right-6">
+        <div className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(180deg,rgba(19,48,32,0.98),rgba(13,21,18,0.98))] px-5 py-4">
+          <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-lifewood-castleton/45 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-lifewood-saffron p-2 text-lifewood-darkSerpent">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Meet Iva</h2>
+                  <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Always On</p>
+                </div>
               </div>
-              <div>
-                 <h2 className="font-sans text-2xl font-bold text-white">Meet Iva</h2>
-                 <p className="text-xs text-lifewood-saffron uppercase tracking-widest">Always On</p>
-              </div>
+              <p className="mt-4 max-w-sm text-sm leading-relaxed text-lifewood-earth">
+                Ask about Lifewood services, ESG initiatives, global reach, or let Iva help with admin workflows.
+              </p>
             </div>
-            
-            <p className="text-lifewood-paper/80 mb-8 font-light leading-relaxed">
-              Iva represents the pinnacle of our AI integration. Trained on Lifewood's proprietary datasets, I can guide you through our B2B ecosystem.
-            </p>
-            
-            <div className="mt-auto">
-              <h4 className="uppercase tracking-widest text-xs font-bold text-lifewood-earth mb-4">Suggested Queries</h4>
-              <ul className="space-y-3 text-sm text-lifewood-paper/70">
-                <li className="hover:text-white hover:translate-x-1 transition-all cursor-pointer flex items-center gap-2" onClick={() => setInputText("How does Lifewood ensure data accuracy?")}>
-                  <Sparkles className="w-3 h-3 text-lifewood-saffron" /> Data Accuracy
-                </li>
-                <li className="hover:text-white hover:translate-x-1 transition-all cursor-pointer flex items-center gap-2" onClick={() => setInputText("Tell me about the Pottya initiative.")}>
-                  <Sparkles className="w-3 h-3 text-lifewood-saffron" /> ESG Initiatives
-                </li>
-                <li className="hover:text-white hover:translate-x-1 transition-all cursor-pointer flex items-center gap-2" onClick={() => setInputText("Where are your offices located?")}>
-                  <Sparkles className="w-3 h-3 text-lifewood-saffron" /> Global Locations
-                </li>
-              </ul>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMessages([initialMessage])}
+                className="rounded-full p-2 text-white/55 hover:bg-white/10 hover:text-white"
+                aria-label="Clear chat"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full p-2 text-white/55 hover:bg-white/10 hover:text-white"
+                aria-label="Close Iva"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-lifewood-seasalt relative">
-            <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#133020 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-          
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 relative z-10">
-                {messages.map((msg) => (
-                <div 
-                    key={msg.id} 
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                    <div 
-                    className={`max-w-[80%] rounded-2xl p-5 shadow-sm ${
-                        msg.role === 'user' 
-                        ? 'bg-lifewood-castleton text-white rounded-br-none' 
-                        : 'bg-white text-lifewood-darkSerpent border border-gray-100 rounded-bl-none'
-                    }`}
-                    >
-                    <p className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                    <p className="text-[10px] mt-2 opacity-50 text-right uppercase tracking-widest">
-                        {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </p>
-                    </div>
-                </div>
-                ))}
-                {isLoading && (
-                <div className="flex justify-start">
-                    <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-none p-4 shadow-sm flex items-center space-x-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-lifewood-saffron" />
-                    <span className="text-sm text-gray-500 font-medium">Processing ecosystem data...</span>
-                    </div>
-                </div>
-                )}
-            </div>
-
-            <div className="p-6 bg-white border-t border-gray-200 relative z-20">
-                <div className="relative flex items-center">
-                <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Type your message to Iva..."
-                    className="w-full bg-lifewood-seasalt text-lifewood-darkSerpent placeholder-gray-400 rounded-xl py-4 pl-5 pr-14 focus:outline-none focus:ring-2 focus:ring-lifewood-castleton/20 border border-transparent transition-all"
-                />
-                <button 
-                    onClick={handleSend}
-                    disabled={isLoading || !inputText.trim()}
-                    className="absolute right-2 p-2.5 bg-lifewood-darkSerpent text-lifewood-saffron rounded-lg hover:bg-lifewood-castleton disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    <Send className="w-5 h-5" />
-                </button>
-                </div>
-            </div>
+        <div className="border-b border-white/8 px-4 py-3">
+          <div className="flex flex-wrap gap-2">
+            {suggestedPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => setInputText(prompt)}
+                className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
+              >
+                <Sparkles className="h-3 w-3 text-lifewood-saffron" />
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
 
+        <div className="relative flex-1 overflow-hidden bg-[#f8f6f0]">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            style={{ backgroundImage: 'radial-gradient(#133020 1px, transparent 1px)', backgroundSize: '18px 18px' }}
+          />
+          <div ref={messagesContainerRef} className="relative z-10 flex h-full flex-col gap-4 overflow-y-auto px-4 py-5">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
+                    msg.role === 'user'
+                      ? 'rounded-br-none bg-lifewood-castleton text-white'
+                      : 'rounded-bl-none border border-gray-100 bg-white text-lifewood-darkSerpent'
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  <p className="mt-2 text-right text-[10px] uppercase tracking-widest opacity-45">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="flex items-center space-x-3 rounded-2xl rounded-bl-none border border-gray-100 bg-white p-4 shadow-sm">
+                  <Loader2 className="h-4 w-4 animate-spin text-lifewood-saffron" />
+                  <span className="text-sm font-medium text-gray-500">Processing ecosystem data...</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 bg-white px-4 py-4">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type your message to Iva..."
+              className="w-full rounded-2xl border border-transparent bg-lifewood-seasalt py-3.5 pl-4 pr-14 text-lifewood-darkSerpent placeholder:text-gray-400 focus:border-lifewood-castleton/15 focus:outline-none focus:ring-2 focus:ring-lifewood-castleton/20"
+            />
+            <button
+              onClick={() => void submitPrompt(inputText)}
+              disabled={isLoading || !inputText.trim()}
+              className="absolute right-2 rounded-xl bg-lifewood-darkSerpent p-2.5 text-lifewood-saffron transition-colors hover:bg-lifewood-castleton disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
