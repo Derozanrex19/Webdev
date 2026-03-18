@@ -16,6 +16,7 @@ import CareersApplication from './components/CareersApplication';
 import LoginPortal from './components/LoginPortal';
 import AdminDashboard from './components/AdminDashboard';
 import IvaFloatButton from './components/IvaFloatButton';
+import GhostLoader from './components/GhostLoader';
 import { Page } from './types';
 import { supabase } from './services/supabaseClient';
 
@@ -357,7 +358,10 @@ const App = () => {
           return (
             <section className="min-h-[calc(100vh-120px)] px-4 py-16 text-center">
               <p className="text-sm uppercase tracking-[0.2em] text-lifewood-darkSerpent/60">Loading Workspace</p>
-              <h2 className="mt-3 text-2xl font-bold text-lifewood-darkSerpent">Checking your account access...</h2>
+              <div className="mt-6 flex justify-center">
+                <GhostLoader label="Checking access" scale={0.24} />
+              </div>
+              <h2 className="mt-5 text-2xl font-bold text-lifewood-darkSerpent">Checking your account access...</h2>
             </section>
           );
         }

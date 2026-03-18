@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { LockKeyhole, User, ShieldCheck, Sparkles } from 'lucide-react';
 import GradientText from './GradientText';
 import Grainient from './Grainient';
+import GhostLoader from './GhostLoader';
 
 interface LoginPortalProps {
   adminOnly?: boolean;
@@ -255,7 +256,12 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ adminOnly = false, onLogin, o
                   disabled={!canSubmitSignup || isSubmitting}
                   className="authc-submit"
                 >
-                  {isSubmitting ? 'Please wait...' : 'Create Account'}
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <GhostLoader inline scale={0.16} />
+                      <span>Please wait...</span>
+                    </span>
+                  ) : 'Create Account'}
                 </button>
               </form>
             </div>}
@@ -295,7 +301,12 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ adminOnly = false, onLogin, o
                   disabled={!canSubmitLogin || isSubmitting}
                   className="authc-submit"
                 >
-                  {isSubmitting ? 'Please wait...' : 'Sign In'}
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <GhostLoader inline scale={0.16} />
+                      <span>Please wait...</span>
+                    </span>
+                  ) : 'Sign In'}
                 </button>
               </form>
             </div>

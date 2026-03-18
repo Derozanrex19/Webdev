@@ -15,6 +15,7 @@ import {
 import emailjs from '@emailjs/browser';
 import { supabase } from '../services/supabaseClient';
 import { getIvaResponse } from '../services/geminiService';
+import GhostLoader from './GhostLoader';
 
 const CAREER_BUCKET = 'career-documents';
 const STATUS_OPTIONS = ['submitted', 'reviewed', 'contacted', 'rejected'] as const;
@@ -581,7 +582,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     </div>
                   </div>
                   {showCareersLoading ? (
-                    <p className="mt-4 text-white/60">Loading…</p>
+                    <div className="mt-4 flex justify-center py-5">
+                      <GhostLoader label="Loading" scale={0.2} />
+                    </div>
                   ) : careerApps.length === 0 ? (
                     <p className="mt-4 text-white/60">No applications yet.</p>
                   ) : (
@@ -617,7 +620,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     </div>
                   </div>
                   {showContactLoading ? (
-                    <p className="mt-4 text-white/60">Loading…</p>
+                    <div className="mt-4 flex justify-center py-5">
+                      <GhostLoader label="Loading" scale={0.2} />
+                    </div>
                   ) : contactMessages.length === 0 ? (
                     <p className="mt-4 text-white/60">No messages yet.</p>
                   ) : (
@@ -750,7 +755,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 </div>
               </div>
               {showCareersLoading ? (
-                <p className="py-8 text-center text-white/60">Loading applications…</p>
+                <div className="flex justify-center py-8">
+                  <GhostLoader label="Loading applications" scale={0.24} />
+                </div>
               ) : filteredCareers.length === 0 ? (
                 <p className="py-8 text-center text-white/60">No applications match.</p>
               ) : (
@@ -844,7 +851,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           {activeSection === 'contact' && (
             <article className="rounded-2xl border border-white/12 bg-[#101612]/94 p-6">
               {showContactLoading ? (
-                <p className="py-8 text-center text-white/60">Loading messages…</p>
+                <div className="flex justify-center py-8">
+                  <GhostLoader label="Loading messages" scale={0.24} />
+                </div>
               ) : contactMessages.length === 0 ? (
                 <p className="py-8 text-center text-white/60">No contact messages yet.</p>
               ) : (
@@ -1023,7 +1032,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                                 disabled={sendingReply || !replyText.trim()}
                                 className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
                               >
-                                {sendingReply ? 'Sending…' : 'Send reply'}
+                                {sendingReply ? (
+                                  <>
+                                    <GhostLoader inline scale={0.16} />
+                                    <span>Sending...</span>
+                                  </>
+                                ) : (
+                                  'Send reply'
+                                )}
                               </button>
                               <button
                                 type="button"

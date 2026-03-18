@@ -4,6 +4,7 @@ import emailjs from '@emailjs/browser';
 import { supabase } from '../services/supabaseClient';
 import { Page } from '../types';
 import Orb from './Orb';
+import GhostLoader from './GhostLoader';
 
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
@@ -418,8 +419,17 @@ const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) =
               disabled={!canSubmit || isSubmitting}
               className="careers-apply-submit mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/16 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0.08))] px-5 py-3 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:border-lifewood-saffron/40 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.25),rgba(255,255,255,0.12))] hover:shadow-[0_0_28px_rgba(255,179,71,0.2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
-              <FileText className="h-4 w-4" />
-              {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
+              {isSubmitting ? (
+                <>
+                  <GhostLoader inline scale={0.16} className="[&_.ghost-loader__label]:hidden" />
+                  <span>Submitting Application...</span>
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4" />
+                  <span>Submit Application</span>
+                </>
+              )}
             </button>
           </form>
         </div>
