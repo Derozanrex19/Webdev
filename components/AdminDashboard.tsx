@@ -45,7 +45,8 @@ interface AdminDashboardProps {
   onGoHome: () => void;
 }
 
-type AdminSection = 'overview' | 'careers' | 'contact';
+type AdminSection = 'overview' | 'careers' | 'contact' | 'waitlists';
+type WaitlistTab = 'next' | 'future';
 
 type CareerApplication = {
   id: string;
@@ -108,13 +109,13 @@ const STATUS_META: Record<string, { label: string; badge: string; panel: string;
     dot: 'bg-cyan-300',
   },
   contacted: {
-    label: 'Contacted',
+    label: 'Next Process Waitlist',
     badge: 'bg-lifewood-castleton/26 text-emerald-200',
     panel: 'border-emerald-300/14 bg-emerald-300/5',
     dot: 'bg-emerald-300',
   },
   rejected: {
-    label: 'Rejected',
+    label: 'Future Roles Waitlist',
     badge: 'bg-red-500/22 text-red-200',
     panel: 'border-red-300/14 bg-red-300/5',
     dot: 'bg-red-300',
@@ -134,6 +135,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [careerSearch, setCareerSearch] = useState('');
   const [contactSearchInput, setContactSearchInput] = useState('');
   const [contactSearch, setContactSearch] = useState('');
+  const [waitlistTab, setWaitlistTab] = useState<WaitlistTab>('next');
+  const [waitlistSearchInput, setWaitlistSearchInput] = useState('');
+  const [waitlistSearch, setWaitlistSearch] = useState('');
   const [careerViewMode, setCareerViewMode] = useState<CareerViewMode>(() => {
     try {
       return (window.localStorage.getItem(CAREER_VIEW_MODE_KEY) as CareerViewMode) || 'cards';
@@ -196,6 +200,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         setContactSearchInput(saved.contactSearchInput);
         setContactSearch(saved.contactSearchInput);
       }
+      if (saved.waitlistSearchInput) {
+        setWaitlistSearchInput(saved.waitlistSearchInput);
+        setWaitlistSearch(saved.waitlistSearchInput);
+      }
     } catch {
       // Ignore malformed local storage data.
     }
@@ -211,12 +219,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           careerCountryFilter,
           careerSearchInput,
           contactSearchInput,
+          waitlistSearchInput,
         })
       );
     } catch {
       // Ignore local storage write failures.
     }
-  }, [careerCountryFilter, careerFilter, careerPositionFilter, careerSearchInput, contactSearchInput]);
+  }, [careerCountryFilter, careerFilter, careerPositionFilter, careerSearchInput, contactSearchInput, waitlistSearchInput]);
 
   useEffect(() => {
     try {
@@ -271,7 +280,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   }, []);
 
   useEffect(() => {
-    if (activeSection === 'overview' || activeSection === 'careers') fetchCareers();
+    if (activeSection === 'overview' || activeSection === 'careers' || activeSection === 'waitlists') fetchCareers();
   }, [activeSection, fetchCareers]);
 
   useEffect(() => {
@@ -291,6 +300,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     }, 120);
     return () => window.clearTimeout(id);
   }, [contactSearchInput]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setWaitlistSearch(waitlistSearchInput);
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [waitlistSearchInput]);
 
   useEffect(() => {
     const raw = window.localStorage.getItem('ivaAdminContext');
@@ -355,6 +371,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const selectedCareerNote = selectedCareer ? careerNotes[selectedCareer.id] || '' : '';
   const selectedResumeReview = selectedCareer ? resumeReviews[selectedCareer.id] : undefined;
   const selectedCount = selectedCareerIds.length;
+  const nextProcessWaitlist = careerApps.filter((app) => app.status === 'contacted');
+  const futureRolesWaitlist = careerApps.filter((app) => app.status === 'rejected');
+  const waitlistQuery = waitlistSearch.trim().toLowerCase();
+  const visibleWaitlist = (waitlistTab === 'next' ? nextProcessWaitlist : futureRolesWaitlist).filter((app) => {
+    if (!waitlistQuery) return true;
+    return (
+      `${app.first_name} ${app.last_name}`.toLowerCase().includes(waitlistQuery) ||
+      app.email.toLowerCase().includes(waitlistQuery) ||
+      app.position_applied.toLowerCase().includes(waitlistQuery) ||
+      app.country.toLowerCase().includes(waitlistQuery)
+    );
+  });
 
   const statusBreakdown = STATUS_OPTIONS.map((status) => ({
     status,
@@ -486,7 +514,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           detail: app.email,
         });
         openToast(
-          decision === 'contacted' ? 'Applicant approved' : 'Applicant rejected',
+          decision === 'contacted' ? 'Added to next-process waitlist' : 'Added to future-roles waitlist',
           `${decision === 'contacted' ? 'Acceptance' : 'Rejection'} email sent to ${app.first_name} ${app.last_name}.`
         );
       } catch (emailError) {
@@ -498,6 +526,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     } finally {
       setDecisionSending(null);
     }
+  };
+
+  const openWaitlistLane = (lane: WaitlistTab) => {
+    setActiveSection('waitlists');
+    setWaitlistTab(lane);
   };
 
   const handleBulkUpdateStatus = async (status: string) => {
@@ -755,7 +788,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           `Hi ${app.first_name},`,
           '',
           `Thank you for applying for the ${app.position_applied} role at Lifewood.`,
-          'We reviewed your application and would like to move you forward to the next stage of the process.',
+          'We reviewed your application and would like to move you into our next-process waitlist for the upcoming recruitment stage.',
           'Please reply to this email so we can share the next steps with you.',
           '',
           'Best regards,',
@@ -768,8 +801,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
           `Hi ${app.first_name},`,
           '',
           `Thank you for taking the time to apply for the ${app.position_applied} role at Lifewood.`,
-          'After careful review, we have decided not to move forward with your application for this position.',
-          'We appreciate your interest in Lifewood and encourage you to apply again for future opportunities that match your experience.',
+          'After careful review, we will not be moving forward with your application for this position at this time.',
+          'We are keeping your profile in our future-roles waitlist, and we may contact you if a new opportunity opens that better matches your background.',
           '',
           'Best regards,',
           'Lifewood Recruitment Team',
@@ -835,6 +868,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     return { communication, completeness, marketFit };
   };
 
+  const isDecisionLocked = (app: CareerApplication) =>
+    app.status === 'contacted' || app.status === 'rejected';
+
   return (
     <section className="relative z-10 min-h-screen overflow-hidden bg-transparent px-4 py-5 text-white sm:px-6 lg:px-8">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_12%,rgba(200,255,52,0.16),transparent_34%),radial-gradient(circle_at_80%_100%,rgba(255,179,71,0.16),transparent_36%),linear-gradient(to_bottom,rgba(4,14,10,0.30),rgba(4,14,10,0.58))]" />
@@ -878,6 +914,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 </span>
               )}
             </button>
+            <div className="pt-2">
+              <p className="px-4 pb-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/35">Waitlists</p>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => openWaitlistLane('next')}
+                  className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'waitlists' && waitlistTab === 'next' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
+                >
+                  <span>Next Process</span>
+                  <span className="rounded-full bg-emerald-300/14 px-2 py-0.5 text-xs font-bold text-emerald-200">
+                    {nextProcessWaitlist.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => openWaitlistLane('future')}
+                  className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'waitlists' && waitlistTab === 'future' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
+                >
+                  <span>Future Roles</span>
+                  <span className="rounded-full bg-red-300/14 px-2 py-0.5 text-xs font-bold text-red-200">
+                    {futureRolesWaitlist.length}
+                  </span>
+                </button>
+              </div>
+            </div>
           </nav>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -897,11 +956,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               {activeSection === 'overview' && 'Dashboard'}
               {activeSection === 'careers' && 'Career Applications'}
               {activeSection === 'contact' && 'Contact Messages'}
+              {activeSection === 'waitlists' && 'Waitlists'}
             </h1>
             <p className="mt-3 max-w-3xl text-base text-white/72 md:text-lg">
               {activeSection === 'overview' && 'Summary of applications and contact form submissions.'}
               {activeSection === 'careers' && 'View, filter, and manage job applications from the Careers page.'}
               {activeSection === 'contact' && 'Messages sent via the Contact Us form.'}
+              {activeSection === 'waitlists' && 'Manage applicants lined up for the next recruitment process and future role outreach.'}
             </p>
           </article>
 
@@ -944,7 +1005,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     <div className="h-px bg-white/8" />
                     <div>
                       <p className="text-3xl font-black text-emerald-200">{statusBreakdown.find(({ status }) => status === 'contacted')?.count ?? 0}</p>
-                      <p className="mt-1 text-sm text-white/62">candidates moved forward</p>
+                      <p className="mt-1 text-sm text-white/62">candidates in next-process waitlist</p>
                     </div>
                   </div>
                 </article>
@@ -1060,6 +1121,80 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   <button onClick={() => setActiveSection('contact')} className="mt-5 text-sm font-semibold text-lifewood-saffron hover:underline">
                     View all messages →
                   </button>
+                </article>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article className="rounded-3xl border border-emerald-300/14 bg-emerald-300/5 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-200" />
+                        Next Process Waitlist
+                      </h2>
+                      <p className="mt-1 text-sm text-white/55">Accepted applicants queued for the next recruitment step.</p>
+                    </div>
+                    <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+                      {nextProcessWaitlist.length}
+                    </span>
+                  </div>
+                  {nextProcessWaitlist.length === 0 ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-8 text-sm text-white/50">
+                      No applicants are in the next-process waitlist yet.
+                    </div>
+                  ) : (
+                    <ul className="mt-5 space-y-2.5">
+                      {nextProcessWaitlist.slice(0, 5).map((app) => (
+                        <li
+                          key={app.id}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer hover:bg-white/5 transition"
+                          onClick={() => setSelectedCareer(app)}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-white">{app.first_name} {app.last_name}</p>
+                            <p className="mt-0.5 truncate text-xs text-white/45">{app.position_applied}</p>
+                          </div>
+                          <span className="text-xs text-white/45">{formatDate(app.created_at)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+
+                <article className="rounded-3xl border border-red-300/14 bg-red-300/5 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
+                        <AlertCircle className="h-5 w-5 text-red-200" />
+                        Future Roles Waitlist
+                      </h2>
+                      <p className="mt-1 text-sm text-white/55">Rejected applicants retained for future role outreach.</p>
+                    </div>
+                    <span className="rounded-full border border-red-300/20 bg-red-300/10 px-3 py-1 text-xs font-semibold text-red-200">
+                      {futureRolesWaitlist.length}
+                    </span>
+                  </div>
+                  {futureRolesWaitlist.length === 0 ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-8 text-sm text-white/50">
+                      No applicants are in the future-roles waitlist yet.
+                    </div>
+                  ) : (
+                    <ul className="mt-5 space-y-2.5">
+                      {futureRolesWaitlist.slice(0, 5).map((app) => (
+                        <li
+                          key={app.id}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer hover:bg-white/5 transition"
+                          onClick={() => setSelectedCareer(app)}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-white">{app.first_name} {app.last_name}</p>
+                            <p className="mt-0.5 truncate text-xs text-white/45">{app.position_applied}</p>
+                          </div>
+                          <span className="text-xs text-white/45">{formatDate(app.created_at)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </article>
               </div>
 
@@ -1677,6 +1812,134 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               )}
             </article>
           )}
+
+          {activeSection === 'waitlists' && (
+            <article className="rounded-3xl border border-white/12 bg-[#101612]/94 p-6">
+              <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] p-4 md:p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="space-y-3">
+                    <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1">
+                      <button
+                        type="button"
+                        onClick={() => setWaitlistTab('next')}
+                        className={`rounded-full px-4 py-2 text-sm font-medium ${waitlistTab === 'next' ? 'bg-emerald-300 text-[#0d1512]' : 'text-white/65'}`}
+                      >
+                        Next Process
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWaitlistTab('future')}
+                        className={`rounded-full px-4 py-2 text-sm font-medium ${waitlistTab === 'future' ? 'bg-red-300 text-[#0d1512]' : 'text-white/65'}`}
+                      >
+                        Future Roles
+                      </button>
+                    </div>
+                    <p className="text-sm text-white/58">
+                      {waitlistTab === 'next'
+                        ? 'Accepted applicants queued for the next recruitment process.'
+                        : 'Rejected applicants retained for future opportunity outreach.'}
+                    </p>
+                  </div>
+
+                  <label className="relative block w-full lg:max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                    <input
+                      type="text"
+                      value={waitlistSearchInput}
+                      onChange={(event) => setWaitlistSearchInput(event.target.value)}
+                      placeholder="Search name, email, role, or country..."
+                      className="w-full rounded-2xl border border-white/12 bg-black/25 py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+                    <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Visible Candidates</p>
+                    <p className="mt-2 text-3xl font-black text-white">{visibleWaitlist.length}</p>
+                    <p className="mt-1 text-sm text-white/50">matching applicants in this lane</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+                    <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Lane Purpose</p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {waitlistTab === 'next' ? 'Queue for next recruitment step' : 'Retain for future role outreach'}
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl border px-4 py-4 ${waitlistTab === 'next' ? 'border-emerald-300/14 bg-emerald-300/5' : 'border-red-300/14 bg-red-300/5'}`}>
+                    <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Current Lane</p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {waitlistTab === 'next' ? 'Next Process Waitlist' : 'Future Roles Waitlist'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {visibleWaitlist.length === 0 ? (
+                <div className="mt-5 rounded-3xl border border-dashed border-white/10 bg-black/20 px-6 py-12 text-center">
+                  <Briefcase className="mx-auto h-10 w-10 text-white/20" />
+                  <h3 className="mt-4 text-lg font-semibold text-white">No candidates in this waitlist</h3>
+                  <p className="mt-2 text-sm text-white/52">
+                    {waitlistTab === 'next'
+                      ? 'Approve applicants to place them in the next-process waitlist.'
+                      : 'Reject applicants to keep them available for future openings.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {visibleWaitlist.map((app) => (
+                    <article key={app.id} className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.22))] p-5 shadow-[0_18px_35px_rgba(0,0,0,0.35)]">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-lg font-semibold text-white">{app.first_name} {app.last_name}</h3>
+                          <p className="mt-1 truncate text-sm text-lifewood-saffron/90">{app.position_applied}</p>
+                          <p className="mt-1 truncate text-xs text-white/45">{app.email}</p>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-[0.66rem] font-semibold uppercase tracking-wide ${STATUS_META[app.status]?.badge || 'bg-white/10 text-white/80'}`}>
+                          {STATUS_META[app.status]?.label || app.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                          <p className="text-white/38">Country</p>
+                          <p className="mt-1 font-medium text-white/82">{app.country}</p>
+                        </div>
+                        <div className="rounded-xl bg-white/[0.03] px-3 py-2">
+                          <p className="text-white/38">Queued</p>
+                          <p className="mt-1 font-medium text-white/72">{formatDate(app.created_at)}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/8 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCareer(app)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/84 hover:bg-white/10"
+                        >
+                          Review applicant
+                        </button>
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedCareer(app);
+                            setCareerMailModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Contact Applicant
+                        </a>
+                        <span className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/60">
+                          Decision locked
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </article>
+          )}
         </div>
       </div>
 
@@ -1719,20 +1982,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               <button
                 type="button"
                 onClick={() => handleDecisionAction(selectedCareer, 'contacted')}
-                disabled={updatingStatus || decisionSending !== null}
+                disabled={updatingStatus || decisionSending !== null || isDecisionLocked(selectedCareer)}
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                {decisionSending === 'contacted' ? 'Approving…' : 'Approve'}
+                {selectedCareer.status === 'contacted' ? 'Accepted' : decisionSending === 'contacted' ? 'Approving…' : 'Approve'}
               </button>
               <button
                 type="button"
                 onClick={() => handleDecisionAction(selectedCareer, 'rejected')}
-                disabled={updatingStatus || decisionSending !== null}
+                disabled={updatingStatus || decisionSending !== null || isDecisionLocked(selectedCareer)}
                 className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-300/18 disabled:opacity-60"
               >
                 <AlertCircle className="h-4 w-4" />
-                {decisionSending === 'rejected' ? 'Rejecting…' : 'Reject'}
+                {selectedCareer.status === 'rejected' ? 'Rejected' : decisionSending === 'rejected' ? 'Rejecting…' : 'Reject'}
               </button>
               <a
                 href="#"
