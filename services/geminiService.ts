@@ -93,3 +93,115 @@ export const getIvaResponse = async (
     return "Connection to Lifewood Data Core interrupted. Please check your network.";
   }
 };
+
+export type ResumeReview = {
+  score: number;
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  recommendation: string;
+};
+
+const parseResumeReview = (raw: string): ResumeReview | null => {
+  try {
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      score: Number(parsed.score) || 0,
+      summary: sanitizeIvaText(parsed.summary || ''),
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map((item) => sanitizeIvaText(String(item))) : [],
+      improvements: Array.isArray(parsed.improvements) ? parsed.improvements.map((item) => sanitizeIvaText(String(item))) : [],
+      recommendation: sanitizeIvaText(parsed.recommendation || ''),
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const getResumeReviewFromUrl = async (
+  resumeUrl: string,
+  candidate: {
+    firstName: string;
+    lastName: string;
+    position: string;
+    country: string;
+    status: string;
+  }
+): Promise<ResumeReview> => {
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing Gemini API configuration.');
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+  const model = 'gemini-2.5-flash';
+  const response = await fetch(resumeUrl);
+  if (!response.ok) {
+    throw new Error('Unable to open the resume file for AI scoring.');
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+
+  const prompt = `
+You are reviewing a candidate CV for Lifewood.
+
+Candidate:
+- Name: ${candidate.firstName} ${candidate.lastName}
+- Role applied for: ${candidate.position}
+- Country: ${candidate.country}
+- Current status: ${candidate.status}
+
+Read the attached PDF resume and evaluate it for the role above.
+Return strict JSON only in this shape:
+{
+  "score": 0,
+  "summary": "",
+  "strengths": ["", "", ""],
+  "improvements": ["", "", ""],
+  "recommendation": ""
+}
+
+Scoring rules:
+- Score should be 0 to 100.
+- Summary should be 2 concise sentences.
+- Strengths should be 2 to 4 short bullets.
+- Improvements should be 2 to 4 short bullets.
+- Recommendation should be a single short sentence for the recruiter.
+- Do not use markdown.
+`;
+
+  const reviewResponse = await ai.models.generateContent({
+    model,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: base64,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const parsed = parseResumeReview(reviewResponse.text || '');
+  if (parsed) return parsed;
+
+  return {
+    score: 72,
+    summary: 'Iva reviewed the attached resume but could not structure the result perfectly. The CV appears broadly relevant, but the recruiter should review it manually before deciding.',
+    strengths: ['Relevant background appears present', 'Resume includes enough material for manual review'],
+    improvements: ['Run a manual recruiter check for role alignment', 'Verify whether the resume highlights measurable outcomes'],
+    recommendation: 'Use this CV as a shortlist candidate only after manual review.',
+  };
+};

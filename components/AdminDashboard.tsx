@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../services/supabaseClient';
-import { getIvaResponse } from '../services/geminiService';
+import { getIvaResponse, getResumeReviewFromUrl, type ResumeReview } from '../services/geminiService';
 import GhostLoader from './GhostLoader';
 
 const CAREER_BUCKET = 'career-documents';
@@ -33,6 +33,11 @@ const CAREER_VIEW_MODE_KEY = 'lifewood-career-view-mode';
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
 const EMAILJS_CONTACT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_CONTACT_REPLY_TEMPLATE_ID || '';
+const EMAILJS_WEBSITE_LINK = import.meta.env.VITE_EMAILJS_WEBSITE_LINK || 'https://webdev-wk9t.vercel.app/';
+const EMAILJS_DECISION_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_DECISION_PUBLIC_KEY || '';
+const EMAILJS_DECISION_SERVICE_ID = import.meta.env.VITE_EMAILJS_DECISION_SERVICE_ID || '';
+const EMAILJS_DECISION_ACCEPT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_DECISION_ACCEPT_TEMPLATE_ID || '';
+const EMAILJS_DECISION_REJECT_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_DECISION_REJECT_TEMPLATE_ID || '';
 
 interface AdminDashboardProps {
   userEmail: string;
@@ -139,10 +144,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
   const [careerMailModalOpen, setCareerMailModalOpen] = useState(false);
+  const [cvScoreModalOpen, setCvScoreModalOpen] = useState(false);
   const [resumePreviewUrl, setResumePreviewUrl] = useState<string | null>(null);
   const [resumePreviewName, setResumePreviewName] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [resumeLoading, setResumeLoading] = useState<string | null>(null);
+  const [decisionSending, setDecisionSending] = useState<'contacted' | 'rejected' | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
@@ -171,6 +178,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     }
   });
   const [selectedCareerIds, setSelectedCareerIds] = useState<string[]>([]);
+  const [resumeReviewLoading, setResumeReviewLoading] = useState(false);
+  const [resumeReviewError, setResumeReviewError] = useState('');
+  const [resumeReviews, setResumeReviews] = useState<Record<string, ResumeReview>>({});
 
   useEffect(() => {
     try {
@@ -343,9 +353,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const showCareersLoading = loadingCareers && careerApps.length === 0;
   const showContactLoading = loadingContact && contactMessages.length === 0;
   const selectedCareerNote = selectedCareer ? careerNotes[selectedCareer.id] || '' : '';
-  const selectedCareerHistory = selectedCareer
-    ? contactHistory.filter((item) => item.applicantId === selectedCareer.id).slice(0, 4)
-    : [];
+  const selectedResumeReview = selectedCareer ? resumeReviews[selectedCareer.id] : undefined;
   const selectedCount = selectedCareerIds.length;
 
   const statusBreakdown = STATUS_OPTIONS.map((status) => ({
@@ -405,6 +413,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     setSelectedCareerIds((prev) => prev.filter((id) => filteredCareers.some((app) => app.id === id)));
   }, [filteredCareers]);
 
+  useEffect(() => {
+    if (!selectedCareer) return;
+    setResumeReviewError('');
+    if (!resumeReviews[selectedCareer.id]) {
+      void handleGenerateResumeReview(selectedCareer);
+    }
+  }, [selectedCareer]);
+
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingStatus(true);
     await supabase.from('career_applications').update({ status }).eq('id', id);
@@ -420,6 +436,68 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       openToast('Status updated', `${updatedCareer.first_name} ${updatedCareer.last_name} is now ${status}.`);
     }
     setUpdatingStatus(false);
+  };
+
+  const sendDecisionEmail = async (app: CareerApplication, decision: 'contacted' | 'rejected') => {
+    if (
+      !EMAILJS_DECISION_PUBLIC_KEY ||
+      !EMAILJS_DECISION_SERVICE_ID ||
+      !EMAILJS_DECISION_ACCEPT_TEMPLATE_ID ||
+      !EMAILJS_DECISION_REJECT_TEMPLATE_ID
+    ) {
+      throw new Error('Decision email templates are not fully configured. Check the new EmailJS decision env keys.');
+    }
+
+    const templateId =
+      decision === 'contacted'
+        ? EMAILJS_DECISION_ACCEPT_TEMPLATE_ID
+        : EMAILJS_DECISION_REJECT_TEMPLATE_ID;
+
+    emailjs.init(EMAILJS_DECISION_PUBLIC_KEY);
+    await emailjs.send(EMAILJS_DECISION_SERVICE_ID, templateId, {
+      to_email: app.email,
+      email: app.email,
+      first_name: app.first_name,
+      last_name: app.last_name,
+      position_applied: app.position_applied,
+      website_link: EMAILJS_WEBSITE_LINK,
+    });
+  };
+
+  const handleDecisionAction = async (app: CareerApplication, decision: 'contacted' | 'rejected') => {
+    setDecisionSending(decision);
+    try {
+      await supabase.from('career_applications').update({ status: decision }).eq('id', app.id);
+      await fetchCareers();
+      setSelectedCareer((prev) => (prev && prev.id === app.id ? { ...prev, status: decision } : prev));
+
+      const label = decision === 'contacted' ? 'approved' : 'rejected';
+      pushActivity({
+        type: 'status',
+        title: `${app.first_name} ${app.last_name} ${label}`,
+        detail: `${app.position_applied} · ${app.email}`,
+      });
+
+      try {
+        await sendDecisionEmail(app, decision);
+        pushActivity({
+          type: 'reply',
+          title: `${decision === 'contacted' ? 'Acceptance' : 'Rejection'} email sent to ${app.first_name} ${app.last_name}`,
+          detail: app.email,
+        });
+        openToast(
+          decision === 'contacted' ? 'Applicant approved' : 'Applicant rejected',
+          `${decision === 'contacted' ? 'Acceptance' : 'Rejection'} email sent to ${app.first_name} ${app.last_name}.`
+        );
+      } catch (emailError) {
+        openToast(
+          'Status updated, email not sent',
+          emailError instanceof Error ? emailError.message : 'The applicant status changed, but the decision email failed.'
+        );
+      }
+    } finally {
+      setDecisionSending(null);
+    }
   };
 
   const handleBulkUpdateStatus = async (status: string) => {
@@ -599,6 +677,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       setResumePreviewName(app.resume_file_name);
     }
     setResumeLoading(null);
+  };
+
+  const handleGenerateResumeReview = async (app: CareerApplication, force = false) => {
+    if (!force && resumeReviews[app.id]) return;
+    setResumeReviewLoading(true);
+    setResumeReviewError('');
+    try {
+      const { data, error } = await supabase.storage
+        .from(CAREER_BUCKET)
+        .createSignedUrl(app.resume_path, 120);
+      if (error || !data?.signedUrl) {
+        throw error || new Error('Signed URL could not be created.');
+      }
+
+      const review = await getResumeReviewFromUrl(data.signedUrl, {
+        firstName: app.first_name,
+        lastName: app.last_name,
+        position: app.position_applied,
+        country: app.country,
+        status: app.status,
+      });
+
+      setResumeReviews((prev) => ({ ...prev, [app.id]: review }));
+    } catch (error) {
+      setResumeReviewError(
+        error instanceof Error ? error.message : 'Unable to generate a CV score right now.'
+      );
+    } finally {
+      setResumeReviewLoading(false);
+    }
   };
 
   const saveCareerNote = (career: CareerApplication, note: string) => {
@@ -1256,23 +1364,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                       </dl>
 
                       <footer className="mt-4 flex items-center justify-between gap-3 border-t border-white/8 pt-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadResume(app);
-                          }}
-                          disabled={resumeLoading === app.id}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/16 bg-white/5 px-3.5 py-2 text-[0.74rem] font-semibold text-white hover:bg-white/12 disabled:opacity-50"
-                        >
-                          {resumeLoading === app.id ? (
-                            'Downloading…'
-                          ) : (
-                            <>
-                              <Download className="h-3.5 w-3.5" />
-                              Resume
-                            </>
-                          )}
-                        </button>
+                        <span className="text-[0.72rem] uppercase tracking-[0.16em] text-white/35">
+                          Ready for review
+                        </span>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1619,62 +1713,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => handleDownloadResume(selectedCareer)}
-                disabled={resumeLoading === selectedCareer.id}
-                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-50"
-              >
-                {resumeLoading === selectedCareer.id ? 'Downloading...' : <><Download className="h-4 w-4" /> Download resume</>}
-              </button>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-white/40">Review Actions</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => handlePreviewResume(selectedCareer)}
-                disabled={resumeLoading === selectedCareer.id}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/84 hover:bg-white/10 disabled:opacity-60"
-              >
-                <Eye className="h-4 w-4" />
-                Preview resume
-              </button>
-              <div className="flex items-center gap-2">
-                <label className="text-white/60 text-sm">Status:</label>
-                <select
-                  value={selectedCareer.status}
-                  onChange={(e) => handleUpdateStatus(selectedCareer.id, e.target.value)}
-                  disabled={updatingStatus}
-                  className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleUpdateStatus(selectedCareer.id, 'contacted')}
-                disabled={updatingStatus}
+                onClick={() => handleDecisionAction(selectedCareer, 'contacted')}
+                disabled={updatingStatus || decisionSending !== null}
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Approve
+                {decisionSending === 'contacted' ? 'Approving…' : 'Approve'}
               </button>
               <button
                 type="button"
-                onClick={() => handleUpdateStatus(selectedCareer.id, 'rejected')}
-                disabled={updatingStatus}
+                onClick={() => handleDecisionAction(selectedCareer, 'rejected')}
+                disabled={updatingStatus || decisionSending !== null}
                 className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-300/18 disabled:opacity-60"
               >
                 <AlertCircle className="h-4 w-4" />
-                Reject
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUpdateStatus(selectedCareer.id, 'reviewed')}
-                disabled={updatingStatus}
-                className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-300/18 disabled:opacity-60"
-              >
-                <ClipboardList className="h-4 w-4" />
-                Request more info
+                {decisionSending === 'rejected' ? 'Rejecting…' : 'Reject'}
               </button>
               <a
                 href="#"
@@ -1689,67 +1747,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               </a>
               <button
                 type="button"
-                onClick={() => {
-                  window.localStorage.setItem(
-                    'ivaAdminContext',
-                    JSON.stringify({ type: 'career', data: selectedCareer })
-                  );
-                  window.dispatchEvent(new Event('open-iva'));
-                }}
-                className="mt-2 inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+                onClick={() => setCvScoreModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/25 bg-lifewood-saffron/8 px-4 py-2.5 text-sm font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/14"
               >
-                Ask Iva about this candidate
+                <BarChart3 className="h-4 w-4" />
+                CV Score
               </button>
+              </div>
             </div>
-            <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-white/42">Private Notes</p>
-                    <p className="mt-1 text-sm text-white/55">Capture interview impressions, follow-ups, or internal reminders.</p>
-                  </div>
-                </div>
-                <textarea
-                  rows={6}
-                  value={selectedCareerNote}
-                  onChange={(e) =>
-                    setCareerNotes((prev) => ({
-                      ...prev,
-                      [selectedCareer.id]: e.target.value,
-                    }))
-                  }
-                  onBlur={(e) => saveCareerNote(selectedCareer, e.target.value)}
-                  className="mt-4 w-full rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/60 focus:outline-none"
-                  placeholder="Add notes for the hiring team..."
-                />
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => saveCareerNote(selectedCareer, selectedCareerNote)}
-                    className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/75 hover:bg-white/10"
-                  >
-                    Save note
-                  </button>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/42">Private Notes</p>
+                  <p className="mt-1 text-sm text-white/55">Capture interview impressions, follow-ups, or internal reminders.</p>
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/42">Contact History</p>
-                <p className="mt-1 text-sm text-white/55">Track when Gmail drafts were opened for this applicant.</p>
-                {selectedCareerHistory.length === 0 ? (
-                  <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-6 text-sm text-white/50">
-                    No contact activity yet for this applicant.
-                  </div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {selectedCareerHistory.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3">
-                        <p className="text-sm font-medium text-white">{item.subject}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/40">{item.status}</p>
-                        <p className="mt-2 text-xs text-white/48">{formatDate(item.createdAt)}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <textarea
+                rows={6}
+                value={selectedCareerNote}
+                onChange={(e) =>
+                  setCareerNotes((prev) => ({
+                    ...prev,
+                    [selectedCareer.id]: e.target.value,
+                  }))
+                }
+                onBlur={(e) => saveCareerNote(selectedCareer, e.target.value)}
+                className="mt-4 w-full rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/60 focus:outline-none"
+                placeholder="Add notes for the hiring team..."
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => saveCareerNote(selectedCareer, selectedCareerNote)}
+                  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/75 hover:bg-white/10"
+                >
+                  Save note
+                </button>
               </div>
             </div>
           </div>
@@ -1862,6 +1895,139 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 <Mail className="h-4 w-4" />
                 Open Gmail
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cvScoreModalOpen && selectedCareer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/72 p-4 backdrop-blur-sm"
+          onClick={() => setCvScoreModalOpen(false)}
+        >
+          <div
+            className="relative my-6 flex w-full max-w-3xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setCvScoreModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">CV Score</p>
+            <h3 className="mt-2 text-2xl font-bold text-white">AI resume review for {selectedCareer.first_name} {selectedCareer.last_name}</h3>
+            <p className="mt-2 text-sm text-white/62">
+              Iva reads the uploaded resume and returns a recruiter-style score, strengths, and next-step guidance.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/42">Applicant</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {selectedCareer.first_name} {selectedCareer.last_name}
+                </p>
+                <p className="mt-1 text-sm text-white/58">{selectedCareer.position_applied}</p>
+                <p className="mt-4 text-xs uppercase tracking-[0.16em] text-white/42">Resume File</p>
+                <p className="mt-2 text-sm text-white/76">{selectedCareer.resume_file_name}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateResumeReview(selectedCareer, true)}
+                    disabled={resumeReviewLoading}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/78 hover:bg-white/10 disabled:opacity-60"
+                  >
+                    {resumeReviewLoading ? 'Refreshing…' : 'Refresh score'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePreviewResume(selectedCareer)}
+                    disabled={resumeLoading === selectedCareer.id}
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/78 hover:bg-white/10 disabled:opacity-60"
+                  >
+                    Preview resume
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                {resumeReviewLoading && !selectedResumeReview ? (
+                  <div className="flex min-h-[18rem] flex-col items-center justify-center">
+                    <GhostLoader label="Scoring CV" scale={0.2} />
+                  </div>
+                ) : resumeReviewError ? (
+                  <div className="rounded-2xl border border-red-300/15 bg-red-300/5 px-4 py-4 text-sm text-red-200">
+                    {resumeReviewError}
+                  </div>
+                ) : selectedResumeReview ? (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-lifewood-saffron/15 bg-lifewood-saffron/5 px-4 py-4">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/42">Overall Score</p>
+                          <p className="mt-2 text-4xl font-black text-lifewood-saffron">
+                            {selectedResumeReview.score}
+                            <span className="text-base text-white/42">/100</span>
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.localStorage.setItem(
+                              'ivaAdminContext',
+                              JSON.stringify({
+                                type: 'career',
+                                data: {
+                                  ...selectedCareer,
+                                  resumeReview: selectedResumeReview,
+                                },
+                              })
+                            );
+                            window.dispatchEvent(new Event('open-iva'));
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/82 hover:bg-white/10"
+                        >
+                          Ask Iva
+                        </button>
+                      </div>
+                      <p className="mt-3 text-sm leading-7 text-white/72">{selectedResumeReview.summary}</p>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-4">
+                        <p className="text-[0.68rem] uppercase tracking-[0.14em] text-emerald-200">Strengths</p>
+                        <ul className="mt-3 space-y-2 text-sm text-white/78">
+                          {selectedResumeReview.strengths.map((item, index) => (
+                            <li key={`${item}-${index}`} className="flex gap-2">
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-4">
+                        <p className="text-[0.68rem] uppercase tracking-[0.14em] text-red-200">Needs Improvement</p>
+                        <ul className="mt-3 space-y-2 text-sm text-white/78">
+                          {selectedResumeReview.improvements.map((item, index) => (
+                            <li key={`${item}-${index}`} className="flex gap-2">
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-red-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/72">
+                      <span className="font-semibold text-white">Recommendation:</span> {selectedResumeReview.recommendation}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-8 text-sm text-white/50">
+                    Generate a CV score to get an AI summary, strengths, and improvement notes for this resume.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
