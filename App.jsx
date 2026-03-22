@@ -452,7 +452,6 @@ const App = () => {
           onAdminAccess={openAdminAccess}
           isAuthenticated={isAuthenticated}
           canAccessDashboard={isAuthenticated && authRole === 'admin'}
-          onLogout={handleLogout}
         />
       )}
       <main className="flex-grow">

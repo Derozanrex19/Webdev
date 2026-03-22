@@ -9,7 +9,6 @@ interface NavbarProps {
   onAdminAccess?: () => void;
   isAuthenticated?: boolean;
   canAccessDashboard?: boolean;
-  onLogout?: () => void;
 }
 
 interface NavChildItem {
@@ -29,7 +28,6 @@ const Navbar: React.FC<NavbarProps> = ({
   onAdminAccess,
   isAuthenticated = false,
   canAccessDashboard = false,
-  onLogout,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -73,12 +71,10 @@ const Navbar: React.FC<NavbarProps> = ({
     if (item.children) return item.children.some((child) => child.page === currentPage);
     return false;
   };
-  const showAuthenticatedActions =
+  const showDashboardShortcut =
     isAuthenticated &&
     canAccessDashboard &&
-    currentPage !== Page.HOME &&
-    currentPage !== Page.IVA;
-
+    currentPage === Page.HOME;
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -219,29 +215,16 @@ const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
-            {showAuthenticatedActions ? (
-              <>
-                <button
-                  onClick={() => {
-                    onNavigate(Page.INTERNAL);
-                    setOpenDropdown(null);
-                  }}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                    currentPage === Page.INTERNAL ? 'text-lifewood-saffron' : 'text-lifewood-darkSerpent hover:bg-white/70'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    onLogout?.();
-                    setOpenDropdown(null);
-                  }}
-                  className="rounded-full border border-lifewood-darkSerpent/20 px-3 py-1.5 text-sm font-semibold text-lifewood-darkSerpent transition hover:bg-white/70"
-                >
-                  Log Out
-                </button>
-              </>
+            {showDashboardShortcut ? (
+              <button
+                onClick={() => {
+                  onNavigate(Page.INTERNAL);
+                  setOpenDropdown(null);
+                }}
+                className="rounded-full px-3 py-1.5 text-sm font-semibold text-lifewood-darkSerpent transition hover:bg-white/70"
+              >
+                Dashboard
+              </button>
             ) : null}
           </div>
 
@@ -301,29 +284,16 @@ const Navbar: React.FC<NavbarProps> = ({
                 </button>
               );
             })}
-            {showAuthenticatedActions ? (
-              <>
-                <button
-                  onClick={() => {
-                    onNavigate(Page.INTERNAL);
-                    setIsMenuOpen(false);
-                  }}
-                  className={`block w-full rounded-xl px-3 py-2 text-left text-base font-semibold transition ${
-                    currentPage === Page.INTERNAL ? 'bg-lifewood-seasalt text-lifewood-castleton' : 'text-lifewood-darkSerpent hover:bg-lifewood-seasalt'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    onLogout?.();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full rounded-xl px-3 py-2 text-left text-base font-semibold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
-                >
-                  Log Out
-                </button>
-              </>
+            {showDashboardShortcut ? (
+              <button
+                onClick={() => {
+                  onNavigate(Page.INTERNAL);
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full rounded-xl px-3 py-2 text-left text-base font-semibold text-lifewood-darkSerpent transition hover:bg-lifewood-seasalt"
+              >
+                Dashboard
+              </button>
             ) : null}
           </div>
         </div>
