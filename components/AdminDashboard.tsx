@@ -511,8 +511,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
   const [acceptScheduleModalOpen, setAcceptScheduleModalOpen] = useState(false);
-  const [interviewSchedule, setInterviewSchedule] = useState('');
-  const [interviewAddress, setInterviewAddress] = useState('');
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('');
+  const LIFEWOOD_ADDRESS = 'Ground Floor i2 Building, Jose Del Mar Street Cebu IT Park, Asia Town, Salinas Drive Apas Lahug, Cebu City, 6000';
+  const [interviewAddress, setInterviewAddress] = useState(LIFEWOOD_ADDRESS);
   const [interviewNotes, setInterviewNotes] = useState('');
   const [acceptScheduleError, setAcceptScheduleError] = useState('');
   const [careerMailModalOpen, setCareerMailModalOpen] = useState(false);
@@ -920,13 +922,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     openToast('Applicant removed from dashboard', 'This only affects your current admin UI and does not delete the database record.');
   };
 
-  const formatInterviewSchedule = (value: string) => {
-    if (!value) return '';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+  const formatInterviewSchedule = (dateVal: string, timeVal: string) => {
+    if (!dateVal) return '';
+    const combined = timeVal ? `${dateVal}T${timeVal}` : dateVal;
+    const date = new Date(combined);
+    if (Number.isNaN(date.getTime())) return `${dateVal} ${timeVal}`.trim();
     return date.toLocaleString(undefined, {
       dateStyle: 'full',
-      timeStyle: 'short',
+      ...(timeVal ? { timeStyle: 'short' } : {}),
     });
   };
 
@@ -1015,20 +1018,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
 
   const handleApproveWithSchedule = async () => {
     if (!selectedCareer) return;
-    if (!interviewSchedule.trim() || !interviewAddress.trim()) {
-      setAcceptScheduleError('Interview schedule and address are required before accepting the applicant.');
+    if (!interviewDate.trim() || !interviewTime.trim() || !interviewAddress.trim()) {
+      setAcceptScheduleError('Interview date, time, and address are required before accepting the applicant.');
       return;
     }
 
     await handleDecisionAction(selectedCareer, 'contacted', {
-      interviewSchedule: formatInterviewSchedule(interviewSchedule),
+      interviewSchedule: formatInterviewSchedule(interviewDate, interviewTime),
       interviewAddress: interviewAddress.trim(),
       interviewNotes: interviewNotes.trim(),
     });
 
     setAcceptScheduleModalOpen(false);
-    setInterviewSchedule('');
-    setInterviewAddress('');
+    setInterviewDate('');
+    setInterviewTime('');
+    setInterviewAddress(LIFEWOOD_ADDRESS);
     setInterviewNotes('');
     setAcceptScheduleError('');
   };
@@ -2361,7 +2365,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                             >
                               {sendingReply ? (
                                 <>
-                                  <GhostLoader inline scale={0.16} />
+                                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-lifewood-darkSerpent/30 border-t-lifewood-darkSerpent" />
                                   <span>Sending…</span>
                                 </>
                               ) : (
@@ -2682,7 +2686,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
           onClick={() => setAcceptScheduleModalOpen(false)}
         >
           <div
-            className="relative my-6 flex w-full max-w-2xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
+            className="relative my-6 flex w-full max-w-2xl max-h-[calc(100vh-3rem)] flex-col overflow-y-auto rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -2720,22 +2724,26 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 <div className="space-y-4">
                   <div>
                     <p className="text-white/38">Interview schedule</p>
-                    <input
-                      type="datetime-local"
-                      value={interviewSchedule}
-                      onChange={(e) => setInterviewSchedule(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
-                    />
+                    <div className="mt-2 flex gap-3">
+                      <input
+                        type="date"
+                        value={interviewDate}
+                        onChange={(e) => setInterviewDate(e.target.value)}
+                        className="flex-1 rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none [&::-webkit-calendar-picker-indicator]:invert"
+                      />
+                      <input
+                        type="time"
+                        value={interviewTime}
+                        onChange={(e) => setInterviewTime(e.target.value)}
+                        className="w-32 rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none [&::-webkit-calendar-picker-indicator]:invert"
+                      />
+                    </div>
                   </div>
                   <div>
                     <p className="text-white/38">Interview address</p>
-                    <input
-                      type="text"
-                      value={interviewAddress}
-                      onChange={(e) => setInterviewAddress(e.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
-                      placeholder="Enter the interview location or meeting address"
-                    />
+                    <p className="mt-2 rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm leading-relaxed text-white/70">
+                      {LIFEWOOD_ADDRESS}
+                    </p>
                   </div>
                   <div>
                     <p className="text-white/38">Additional notes</p>
