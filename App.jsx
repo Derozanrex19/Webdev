@@ -533,7 +533,7 @@ const App = () => {
         </div>
       )}
       {currentPage !== Page.INTERNAL && (
-        <div className="relative z-10">
+        <div className="relative z-40">
           <Navbar
             currentPage={currentPage}
             onNavigate={navigateTo}

@@ -84,8 +84,8 @@ const Navbar: React.FC<NavbarProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
   useEffect(() => {
@@ -167,6 +167,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 return (
                   <div key={item.label} className="relative">
                     <button
+                      type="button"
                       onClick={() => setOpenDropdown(opened ? null : item.label)}
                       className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold transition ${
                         active ? 'text-lifewood-saffron' : 'text-lifewood-darkSerpent hover:bg-white/70'
@@ -177,9 +178,13 @@ const Navbar: React.FC<NavbarProps> = ({
                     </button>
 
                     {opened && (
-                      <div className="absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/70 bg-white/85 p-2 shadow-xl backdrop-blur-lg">
+                      <div
+                        className="absolute left-1/2 top-full z-[80] mt-2 w-72 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/70 bg-white/85 p-2 shadow-xl backdrop-blur-lg"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         {item.children.map((child) => (
                           <button
+                            type="button"
                             key={child.label}
                             onClick={() => {
                               onNavigate(child.page);
@@ -202,6 +207,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
               return (
                 <button
+                  type="button"
                   key={item.label}
                   onClick={() => {
                     onNavigate(item.page as Page);
@@ -217,6 +223,7 @@ const Navbar: React.FC<NavbarProps> = ({
             })}
             {showDashboardShortcut ? (
               <button
+                type="button"
                 onClick={() => {
                   onNavigate(Page.INTERNAL);
                   setOpenDropdown(null);
@@ -230,6 +237,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-1 lg:hidden">
             <button
+              type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="rounded-full p-2 text-lifewood-darkSerpent hover:bg-white/70"
             >
@@ -250,6 +258,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     <div className="space-y-1">
                       {item.children.map((child) => (
                         <button
+                          type="button"
                           key={child.label}
                           onClick={() => {
                             onNavigate(child.page);
@@ -271,6 +280,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
               return (
                 <button
+                  type="button"
                   key={item.label}
                   onClick={() => {
                     onNavigate(item.page as Page);
@@ -286,6 +296,7 @@ const Navbar: React.FC<NavbarProps> = ({
             })}
             {showDashboardShortcut ? (
               <button
+                type="button"
                 onClick={() => {
                   onNavigate(Page.INTERNAL);
                   setIsMenuOpen(false);
