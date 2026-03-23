@@ -2572,7 +2572,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
               Iva reads the uploaded resume and returns a recruiter-style score, strengths, and next-step guidance.
             </p>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+            <div className="mt-5 grid min-h-0 flex-1 gap-4 overflow-hidden md:grid-cols-[0.8fr_1.2fr]">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-white/42">Applicant</p>
                 <p className="mt-2 text-lg font-semibold text-white">
@@ -2601,7 +2601,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="min-h-0 overflow-y-auto rounded-2xl border border-white/10 bg-black/20 p-4">
                 {resumeReviewLoading && !selectedResumeReview ? (
                   <div className="flex min-h-[18rem] flex-col items-center justify-center">
                     <GhostLoader label="Scoring CV" scale={0.2} />
