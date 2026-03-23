@@ -78,19 +78,29 @@ const App = () => {
 
   const normalizeRole = useCallback((role) => (role === 'admin' ? 'admin' : 'intern'), []);
 
+  const lastSyncedUid = React.useRef(null);
+
   const syncAuthUser = useCallback(
     (user) => {
       if (!user) {
+        lastSyncedUid.current = null;
         setAuthUser(null);
         setAuthRole('intern');
         setAuthRoleLoaded(true);
         return;
       }
 
-      // Set session identity immediately; resolve role in background.
       setAuthUser(user.email || 'User');
-      setAuthRole('intern');
-       setAuthRoleLoaded(false);
+
+      // If the same user is re-syncing (e.g. tab focus), keep the current role
+      // and just refresh it in the background without resetting to 'intern'.
+      const isSameUser = lastSyncedUid.current === user.id;
+      lastSyncedUid.current = user.id;
+
+      if (!isSameUser) {
+        setAuthRole('intern');
+        setAuthRoleLoaded(false);
+      }
 
       void (async () => {
         try {
@@ -104,7 +114,9 @@ const App = () => {
           );
           setAuthRole(normalizeRole(data?.role));
         } catch {
-          setAuthRole('intern');
+          if (!isSameUser) {
+            setAuthRole('intern');
+          }
         }
         setAuthRoleLoaded(true);
       })();
@@ -406,36 +418,38 @@ const App = () => {
           />
         );
       case Page.INTERNAL:
-        if (!authReady) {
+        if (!authReady || (isAuthenticated && !authRoleLoaded)) {
           return (
-            <section className="min-h-[calc(100vh-120px)] px-4 py-16 text-center">
-              <p className="text-sm uppercase tracking-[0.2em] text-lifewood-darkSerpent/60">Loading Workspace</p>
+            <section className="min-h-[calc(100vh-120px)] px-4 py-16 text-center bg-[#0a0f0d]">
+              <p className="text-sm uppercase tracking-[0.2em] text-white/60">Loading Workspace</p>
               <div className="mt-6 flex justify-center">
                 <GhostLoader label="Checking access" scale={0.24} />
               </div>
-              <h2 className="mt-5 text-2xl font-bold text-lifewood-darkSerpent">Checking your account access...</h2>
+              <h2 className="mt-5 text-2xl font-bold text-white">Checking your account access...</h2>
             </section>
           );
         }
-        return isAuthenticated && authRole === 'admin' ? (
-          <AdminDashboard
-            userEmail={authUser || 'User'}
-            onLogout={handleLogout}
-            onGoHome={() => navigateTo(Page.HOME)}
-          />
-        ) : !isAuthenticated ? (
-          <LoginPortal
-            onLogin={handleLogin}
-            onSignup={handleSignup}
-            onVerifyOtp={handleVerifyOtp}
-            onResendOtp={handleResendOtp}
-          />
-        ) : (
-          <section className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center px-4 py-16 text-center bg-[#0a0f0d]">
-            <p className="text-white/80">You don’t have access to the admin dashboard.</p>
-            <button type="button" onClick={() => navigateTo(Page.HOME)} className="mt-4 rounded-xl bg-lifewood-saffron px-5 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth transition">Go to Home</button>
-          </section>
-        );
+        if (isAuthenticated && authRole === 'admin') {
+          return (
+            <AdminDashboard
+              userEmail={authUser || 'User'}
+              onLogout={handleLogout}
+              onGoHome={() => navigateTo(Page.HOME)}
+            />
+          );
+        }
+        if (!isAuthenticated) {
+          return (
+            <LoginPortal
+              onLogin={handleLogin}
+              onSignup={handleSignup}
+              onVerifyOtp={handleVerifyOtp}
+              onResendOtp={handleResendOtp}
+            />
+          );
+        }
+        navigateTo(Page.HOME);
+        return null;
       case Page.SERVICES:
         return (
           <div className="pt-10">

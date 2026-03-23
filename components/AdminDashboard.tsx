@@ -18,6 +18,10 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, CartesianGrid,
+} from 'recharts';
 import { supabase } from '../services/supabaseClient';
 import { getIvaResponse, getResumeReviewFromUrl, type ResumeReview } from '../services/geminiService';
 import GhostLoader from './GhostLoader';
@@ -48,7 +52,7 @@ interface AdminDashboardProps {
   onGoHome: () => void;
 }
 
-type AdminSection = 'overview' | 'careers' | 'contact' | 'waitlists';
+type AdminSection = 'overview' | 'careers' | 'contact' | 'waitlists' | 'analytics';
 type WaitlistTab = 'next' | 'future';
 
 type CareerApplication = {
@@ -127,6 +131,358 @@ const STATUS_META: Record<string, { label: string; badge: string; panel: string;
 
 const normalizeDashboardStatus = (status: string) => (status === 'reviewed' ? 'submitted' : status);
 
+const CHART_COLORS = ['#f4a933', '#7cff67', '#5227FF', '#ff6b6b', '#36d7b7', '#a78bfa'];
+const STATUS_CHART_COLORS: Record<string, string> = {
+  submitted: '#f4a933',
+  reviewed: '#a78bfa',
+  contacted: '#36d7b7',
+  rejected: '#ff6b6b',
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/12 bg-[#0d1512]/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+      <p className="font-semibold text-white/90">{label}</p>
+      {payload.map((entry: any, i: number) => (
+        <p key={i} style={{ color: entry.color }} className="mt-0.5">
+          {entry.name}: <span className="font-bold">{entry.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const AnalyticsSection: React.FC<{
+  careerApps: CareerApplication[];
+  contactMessages: ContactSubmission[];
+}> = ({ careerApps: initialCareerApps, contactMessages: initialContactMessages }) => {
+  const [careerApps, setCareerApps] = useState<CareerApplication[]>(initialCareerApps);
+  const [contactMessages, setContactMessages] = useState<ContactSubmission[]>(initialContactMessages);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefreshAnalytics = async () => {
+    setRefreshing(true);
+    try {
+      const [careersRes, contactRes] = await Promise.all([
+        supabase.from('career_applications').select('*').order('created_at', { ascending: false }),
+        supabase.from('contact_submissions').select('*').order('created_at', { ascending: false }),
+      ]);
+      if (!careersRes.error) setCareerApps(careersRes.data || []);
+      if (!contactRes.error) setContactMessages(contactRes.data || []);
+    } catch {
+      // silently fail
+    }
+    setRefreshing(false);
+  };
+
+  const appsByGender = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    careerApps.forEach((app) => {
+      const g = app.gender || 'Not specified';
+      map[g] = (map[g] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [careerApps]);
+
+  const appsByPosition = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    careerApps.forEach((app) => {
+      map[app.position_applied] = (map[app.position_applied] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [careerApps]);
+
+  const appsByCountry = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    careerApps.forEach((app) => {
+      map[app.country] = (map[app.country] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [careerApps]);
+
+  const statusData = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    careerApps.forEach((app) => {
+      const s = app.status || 'unknown';
+      map[s] = (map[s] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [careerApps]);
+
+  const appsByAge = React.useMemo(() => {
+    const brackets: Record<string, number> = {
+      '18–22': 0,
+      '23–27': 0,
+      '28–34': 0,
+      '35–44': 0,
+      '45+': 0,
+    };
+    careerApps.forEach((app) => {
+      const a = Number(app.age) || 0;
+      if (a <= 22) brackets['18–22']++;
+      else if (a <= 27) brackets['23–27']++;
+      else if (a <= 34) brackets['28–34']++;
+      else if (a <= 44) brackets['35–44']++;
+      else brackets['45+']++;
+    });
+    return Object.entries(brackets).map(([range, count]) => ({ range, count }));
+  }, [careerApps]);
+
+  const responseRate = React.useMemo(() => {
+    const total = contactMessages.length;
+    if (total === 0) return { replied: 0, unread: 0, rate: '0' };
+    const replied = contactMessages.filter((m) => m.read).length;
+    return { replied, unread: total - replied, rate: ((replied / total) * 100).toFixed(0) };
+  }, [contactMessages]);
+
+  const chartCard = 'rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.18))] p-5';
+
+  return (
+    <div className="space-y-5">
+      {/* Refresh bar */}
+      <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-5 py-3">
+        <p className="text-xs text-white/50">
+          Showing data for <span className="font-semibold text-white/80">{careerApps.length}</span> applications and <span className="font-semibold text-white/80">{contactMessages.length}</span> messages.
+        </p>
+        <button
+          type="button"
+          onClick={handleRefreshAnalytics}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50"
+        >
+          {refreshing ? 'Refreshing…' : 'Refresh data'}
+        </button>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <article className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
+          <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Total Applications</p>
+          <p className="mt-2 text-3xl font-black text-lifewood-saffron">{careerApps.length}</p>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
+          <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Total Messages</p>
+          <p className="mt-2 text-3xl font-black text-white">{contactMessages.length}</p>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
+          <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Response Rate</p>
+          <p className="mt-2 text-3xl font-black text-emerald-300">{responseRate.rate}%</p>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-center">
+          <p className="text-[0.68rem] uppercase tracking-[0.16em] text-white/42">Positions Open</p>
+          <p className="mt-2 text-3xl font-black text-violet-300">{appsByPosition.length}</p>
+        </article>
+      </div>
+
+      {/* Row 1: Applications by Gender + Status breakdown */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Applications by Gender</h3>
+          {appsByGender.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/40">No data yet</p>
+          ) : (
+            <div className="flex items-center gap-6">
+              <ResponsiveContainer width="50%" height={200}>
+                <PieChart>
+                  <Pie data={appsByGender} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={3} strokeWidth={0}>
+                    {appsByGender.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2">
+                {appsByGender.map((entry, i) => (
+                  <div key={entry.name} className="flex items-center gap-2 text-xs">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="text-white/70">{entry.name}</span>
+                    <span className="ml-auto font-bold text-white/90">{entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </article>
+
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Status Breakdown</h3>
+          {statusData.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/40">No data yet</p>
+          ) : (
+            <div className="flex items-center gap-6">
+              <ResponsiveContainer width="50%" height={200}>
+                <PieChart>
+                  <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={3} strokeWidth={0}>
+                    {statusData.map((entry, i) => (
+                      <Cell key={entry.name} fill={STATUS_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2">
+                {statusData.map((entry, i) => (
+                  <div key={entry.name} className="flex items-center gap-2 text-xs">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STATUS_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="capitalize text-white/70">{entry.name}</span>
+                    <span className="ml-auto font-bold text-white/90">{entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </article>
+      </div>
+
+      {/* Row 2: By Position + By Country */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Applications by Position</h3>
+          {appsByPosition.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/40">No data yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(180, appsByPosition.length * 40)}>
+              <BarChart data={appsByPosition} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }} axisLine={false} tickLine={false} width={140} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="Applicants" radius={[0, 6, 6, 0]}>
+                  {appsByPosition.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </article>
+
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Applications by Country</h3>
+          {appsByCountry.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/40">No data yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(180, appsByCountry.length * 40)}>
+              <BarChart data={appsByCountry} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="country" tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }} axisLine={false} tickLine={false} width={120} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Applicants" radius={[0, 6, 6, 0]}>
+                  {appsByCountry.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[(i + 2) % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </article>
+      </div>
+
+      {/* Row 3: Age distribution + Response rate */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Applicant Age Distribution</h3>
+          {appsByAge.every((b) => b.count === 0) ? (
+            <p className="py-8 text-center text-sm text-white/40">No data yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={appsByAge} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="range" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Applicants" radius={[6, 6, 0, 0]}>
+                  {appsByAge.map((_, i) => (
+                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </article>
+
+        <article className={chartCard}>
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/55">Contact Response Rate</h3>
+          <div className="flex items-center gap-8">
+            <ResponsiveContainer width="50%" height={200}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Replied', value: responseRate.replied },
+                    { name: 'Unread', value: responseRate.unread },
+                  ]}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  innerRadius={50}
+                  paddingAngle={3}
+                  strokeWidth={0}
+                >
+                  <Cell fill="#36d7b7" />
+                  <Cell fill="rgba(255,255,255,0.12)" />
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/42">Replied</p>
+                <p className="text-2xl font-black text-emerald-300">{responseRate.replied}</p>
+              </div>
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/42">Unread</p>
+                <p className="text-2xl font-black text-white/40">{responseRate.unread}</p>
+              </div>
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/42">Rate</p>
+                <p className="text-2xl font-black text-lifewood-saffron">{responseRate.rate}%</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  );
+};
+
+class AnalyticsErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-3xl border border-white/12 bg-[#101612]/94 p-8 text-center">
+          <p className="text-white/60">Unable to load analytics charts. Please refresh and try again.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AnalyticsSectionSafe: React.FC<{
+  careerApps: CareerApplication[];
+  contactMessages: ContactSubmission[];
+}> = (props) => (
+  <AnalyticsErrorBoundary>
+    <AnalyticsSection {...props} />
+  </AnalyticsErrorBoundary>
+);
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, onGoHome }) => {
   const [activeSection, setActiveSection] = useState<AdminSection>('overview');
   const [careerApps, setCareerApps] = useState<CareerApplication[]>([]);
@@ -145,9 +501,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [waitlistSearch, setWaitlistSearch] = useState('');
   const [careerViewMode, setCareerViewMode] = useState<CareerViewMode>(() => {
     try {
-      return (window.localStorage.getItem(CAREER_VIEW_MODE_KEY) as CareerViewMode) || 'cards';
+      const stored = window.localStorage.getItem(CAREER_VIEW_MODE_KEY) as CareerViewMode | null;
+      // Default to table view (even if we previously saved "cards").
+      return stored === 'table' ? 'table' : 'table';
     } catch {
-      return 'cards';
+      return 'table';
     }
   });
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
@@ -491,14 +849,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       return;
     }
 
-    if (nextSelected !== selectedContact) {
+    if (nextSelected.id !== selectedContact.id || nextSelected.read !== selectedContact.read) {
       setSelectedContact(nextSelected);
     }
   }, [activeSection, filteredContacts, selectedContact]);
 
   useEffect(() => {
-    setSelectedCareerIds((prev) => prev.filter((id) => filteredCareers.some((app) => app.id === id)));
-  }, [filteredCareers]);
+    setSelectedCareerIds((prev) => {
+      const next = prev.filter((id) => filteredCareers.some((app) => app.id === id));
+      if (next.length === prev.length) return prev;
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [careerApps, careerFilter, careerPositionFilter, careerCountryFilter, careerSearch]);
 
   useEffect(() => {
     if (selectedCareer && hiddenCareerIds.includes(selectedCareer.id)) {
@@ -762,7 +1125,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     setDraftingReplyWithIva(true);
     setReplyError('');
     try {
-      const prompt = `You are Lifewood's virtual assistant drafting an email reply on behalf of a human admin.\n\nSender name: ${selectedContact.first_name} ${selectedContact.last_name}\nSender email: ${selectedContact.email}\nOriginal message:\n${selectedContact.message}\n\nWrite a short, warm, professional reply email of 3–5 sentences. Do not use placeholders. Speak as "we" from Lifewood.`;
+      const prompt = `You are Lifewood's virtual assistant drafting an email reply on behalf of a human admin.
+
+Sender name: ${selectedContact.first_name} ${selectedContact.last_name}
+Sender email: ${selectedContact.email}
+Original message:
+${selectedContact.message}
+
+Rules for your draft:
+- Output ONLY the reply body text. Nothing else.
+- Do NOT include any summary, analysis, suggested tone, labels, or headers like "Summary:", "Suggested Tone:", "Draft Reply:", etc.
+- Do NOT start with "Hello [name]" or any greeting that includes the sender's name. Jump straight into the body of the reply.
+- Carefully read the original message and tailor your reply to exactly what was said.
+- If the message is vague, incomplete, or unclear (e.g. just a single character, random text, or gibberish), politely ask the sender to elaborate on what they need help with. Do NOT pretend you understood.
+- If the message is a clear question or request, answer it professionally in 3–5 sentences.
+- If the message is a greeting with no specific question, warmly acknowledge it and ask how Lifewood can help.
+- Always speak as "we" from Lifewood. Never use placeholders like [name] or [company].
+- Keep the tone warm but concise.`;
       const draft = await getIvaResponse(prompt, []);
       setReplyText(draft.trim());
     } catch (err) {
@@ -1181,6 +1560,15 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </button>
               </div>
             </div>
+            <div className="pt-2">
+              <p className="px-4 pb-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/35">Insights</p>
+              <button
+                onClick={() => setActiveSection('analytics')}
+                className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'analytics' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
+              >
+                <span className="flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Analytics</span>
+              </button>
+            </div>
           </nav>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -1201,12 +1589,14 @@ The body should be ready to send, professional, human, and specific. Do not use 
               {activeSection === 'careers' && 'Career Applications'}
               {activeSection === 'contact' && 'Contact Messages'}
               {activeSection === 'waitlists' && 'Waitlists'}
+              {activeSection === 'analytics' && 'Analytics'}
             </h1>
             <p className="mt-3 max-w-3xl text-base text-white/72 md:text-lg">
               {activeSection === 'overview' && 'Summary of applications and contact form submissions.'}
               {activeSection === 'careers' && 'View, filter, and manage job applications from the Careers page.'}
               {activeSection === 'contact' && 'Messages sent via the Contact Us form.'}
               {activeSection === 'waitlists' && 'Manage applicants lined up for the next recruitment process and future role outreach.'}
+              {activeSection === 'analytics' && 'Visual insights into applications, hiring pipeline, and contact activity.'}
             </p>
           </article>
 
@@ -1920,114 +2310,74 @@ The body should be ready to send, professional, human, and specific. Do not use 
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                     {selectedContact ? (
                       <div className="flex h-full flex-col">
-                        <div className="border-b border-white/10 pb-4">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              <p className="text-xs uppercase tracking-[0.18em] text-lifewood-saffron/80">Message Detail</p>
-                              <h3 className="mt-2 text-2xl font-bold text-white">
-                                {selectedContact.first_name} {selectedContact.last_name}
-                              </h3>
-                              <p className="mt-1 text-sm text-white/55">{selectedContact.email}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/35">Received</p>
-                              <p className="mt-1 text-sm text-white/65">{formatDate(selectedContact.created_at)}</p>
-                            </div>
+                        {/* Header: name, email, date — single clean row */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <h3 className="text-xl font-bold text-white">
+                              {selectedContact.first_name} {selectedContact.last_name}
+                            </h3>
+                            <p className="mt-1 text-sm text-white/55">{selectedContact.email}</p>
                           </div>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {!selectedContact.read && (
-                              <button
-                                onClick={() => handleMarkContactRead(selectedContact.id)}
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
-                              >
-                                Mark as read
-                              </button>
-                            )}
-                            <a
-                              href={`mailto:${selectedContact.email}?subject=${encodeURIComponent('Lifewood Contact Response')}`}
-                              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
+                          <p className="flex-shrink-0 text-xs text-white/45">{formatDate(selectedContact.created_at)}</p>
+                        </div>
+
+                        {/* Original message */}
+                        <div className="mt-4 rounded-2xl border border-white/8 bg-[#0b110e] p-4">
+                          <p className="whitespace-pre-wrap text-sm leading-7 text-white/82">
+                            {selectedContact.message}
+                          </p>
+                        </div>
+
+                        {/* Reply area */}
+                        <div className="mt-4 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Reply</p>
+                            <button
+                              type="button"
+                              onClick={handleDraftReplyWithIva}
+                              disabled={draftingReplyWithIva}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-lifewood-saffron/35 bg-lifewood-saffron/8 px-2.5 py-1.5 text-[0.68rem] font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/16 disabled:opacity-60"
                             >
-                              <Mail className="h-3.5 w-3.5" />
-                              Open in Mail
-                            </a>
+                              {draftingReplyWithIva ? 'Drafting…' : 'Draft with Iva'}
+                            </button>
+                          </div>
+                          <textarea
+                            rows={5}
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                            placeholder="Write your reply…"
+                          />
+                          {replyError && <p className="mt-2 text-xs text-red-300">{replyError}</p>}
+                          <div className="mt-3 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={handleSendContactReply}
+                              disabled={sendingReply || !replyText.trim()}
+                              className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
+                            >
+                              {sendingReply ? (
+                                <>
+                                  <GhostLoader inline scale={0.16} />
+                                  <span>Sending…</span>
+                                </>
+                              ) : (
+                                'Send reply'
+                              )}
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
-                                window.localStorage.setItem(
-                                  'ivaAdminContext',
-                                  JSON.stringify({ type: 'contact', data: selectedContact })
-                                );
-                                window.dispatchEvent(new Event('open-iva'));
+                                setReplyText('');
+                                setReplyError('');
                               }}
-                              className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/35 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18"
+                              className="rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/60 hover:bg-white/10"
                             >
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              Ask Iva for reply ideas
+                              Clear
                             </button>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex-1 space-y-4">
-                          <div className="rounded-2xl border border-white/10 bg-[#0b110e] p-4">
-                            <p className="text-xs uppercase tracking-[0.18em] text-white/38">Original Message</p>
-                            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white/82">
-                              {selectedContact.message}
-                            </p>
-                          </div>
-
-                          <div className="rounded-2xl border border-white/10 bg-[#0b110e] p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <p className="text-xs uppercase tracking-[0.18em] text-white/38">Reply Workspace</p>
-                                <p className="mt-1 text-sm text-white/55">Draft a reply here or let Iva prepare a starting point.</p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleDraftReplyWithIva}
-                                disabled={draftingReplyWithIva}
-                                className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/40 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18 disabled:opacity-60"
-                              >
-                                {draftingReplyWithIva ? 'Drafting with Iva…' : 'Generate draft with Iva'}
-                              </button>
-                            </div>
-                            <textarea
-                              rows={8}
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
-                              className="mt-4 w-full rounded-2xl border border-white/12 bg-black/25 p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/60 focus:outline-none"
-                              placeholder="Write a clear, warm reply to the sender..."
-                            />
-                            {replyError && <p className="mt-3 text-xs text-red-300">{replyError}</p>}
-                            <div className="mt-4 flex flex-wrap items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={handleSendContactReply}
-                                disabled={sendingReply || !replyText.trim()}
-                                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
-                              >
-                                {sendingReply ? (
-                                  <>
-                                    <GhostLoader inline scale={0.16} />
-                                    <span>Sending...</span>
-                                  </>
-                                ) : (
-                                  'Send reply'
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReplyText('');
-                                  setReplyError('');
-                                }}
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/10"
-                              >
-                                Clear draft
-                              </button>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -2172,6 +2522,10 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </div>
               )}
             </article>
+          )}
+
+          {activeSection === 'analytics' && (
+            <AnalyticsSectionSafe careerApps={careerApps} contactMessages={contactMessages} />
           )}
         </div>
       </div>
