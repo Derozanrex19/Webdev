@@ -52,19 +52,19 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
   const loopB = [...traits.slice(3), ...traits.slice(0, 3), ...traits.slice(3), ...traits.slice(0, 3)];
 
   return (
-    <section className="careers-page relative overflow-hidden bg-[#f2efe7] pb-20 pt-14">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(255,179,71,0.12),transparent_30%),radial-gradient(circle_at_88%_14%,rgba(4,98,65,0.10),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.38),rgba(243,239,231,0.92))]" />
+    <section className="careers-page relative overflow-hidden bg-[#0b1813] pb-20 pt-14 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(255,179,71,0.14),transparent_28%),radial-gradient(circle_at_88%_14%,rgba(4,98,65,0.18),transparent_26%),linear-gradient(180deg,rgba(7,17,13,0.74),rgba(8,19,15,0.96))]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <article className="overflow-hidden rounded-[36px] border border-black/8 bg-white/82 p-7 shadow-[0_20px_46px_rgba(15,39,28,0.10)] backdrop-blur-sm md:p-9">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-lifewood-castleton">
+          <article className="careers-fade-up careers-fade-1 overflow-hidden rounded-[36px] border border-white/10 bg-white/[0.06] p-7 shadow-[0_20px_46px_rgba(0,0,0,0.22)] backdrop-blur-sm md:p-9">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-lifewood-saffron">
               Careers Architecture
             </p>
-            <h1 className="careers-title mt-4 max-w-3xl text-[3.2rem] font-black leading-[0.92] tracking-[-0.04em] text-black sm:text-[4.2rem] lg:text-[5.35rem]">
+            <h1 className="careers-title mt-4 max-w-3xl text-[3.2rem] font-black leading-[0.92] tracking-[-0.04em] text-white sm:text-[4.2rem] lg:text-[5.35rem]">
               Build work that scales with people, systems, and purpose.
             </h1>
-            <p className="careers-lead mt-6 max-w-2xl text-lg leading-8 text-black/72 sm:text-[1.2rem]">
+            <p className="careers-lead mt-6 max-w-2xl text-lg leading-8 text-white/72 sm:text-[1.2rem]">
               Lifewood hires for clarity, adaptability, and operational discipline. We are building teams that can support AI delivery at enterprise scale without losing human judgment.
             </p>
 
@@ -85,14 +85,14 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
               <button
                 type="button"
                 onClick={() => onNavigate(Page.CONTACT)}
-                className="inline-flex h-12 items-center rounded-full border border-lifewood-darkSerpent/14 bg-transparent px-5 text-sm font-bold text-lifewood-darkSerpent transition hover:bg-white/70"
+                className="inline-flex h-12 items-center rounded-full border border-white/14 bg-transparent px-5 text-sm font-bold text-white transition hover:bg-white/10"
               >
                 Talk to Recruitment
               </button>
             </div>
           </article>
 
-          <article className="grid gap-4">
+          <article className="careers-fade-up careers-fade-2 grid gap-4">
             <div className="overflow-hidden rounded-[32px] border border-black/8 bg-[#0d1d17] p-5 text-white shadow-[0_18px_38px_rgba(6,30,21,0.18)] md:p-6">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-lifewood-saffron/90">
                 What changes here
@@ -106,18 +106,18 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              {statChips.map(({ icon: Icon, label, value }) => (
+              {statChips.map(({ icon: Icon, label, value }, index) => (
                 <div
                   key={label}
-                  className="rounded-[28px] border border-black/8 bg-white/82 p-5 shadow-[0_14px_26px_rgba(15,39,28,0.08)]"
+                  className={`careers-fade-up rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_14px_26px_rgba(0,0,0,0.18)] ${index === 0 ? 'careers-fade-3' : index === 1 ? 'careers-fade-4' : 'careers-fade-5'}`}
                 >
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-lifewood-seasalt text-lifewood-castleton">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lifewood-saffron">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <p className="mt-4 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-black/48">
+                  <p className="mt-4 text-[0.7rem] font-bold uppercase tracking-[0.2em] text-white/48">
                     {label}
                   </p>
-                  <p className="mt-2 text-base font-semibold leading-snug text-black/86">{value}</p>
+                  <p className="mt-2 text-base font-semibold leading-snug text-white/88">{value}</p>
                 </div>
               ))}
             </div>
@@ -125,7 +125,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[34px] border border-black/8 bg-[#10231b] p-6 text-white shadow-[0_18px_34px_rgba(4,31,20,0.16)] md:p-7">
+          <div className="careers-fade-up careers-fade-3 rounded-[34px] border border-black/8 bg-[#10231b] p-6 text-white shadow-[0_18px_34px_rgba(4,31,20,0.16)] md:p-7">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-lifewood-saffron">Hiring Lens</p>
             <p className="mt-4 text-[1.75rem] font-semibold leading-[1.08] md:text-[2.2rem]">
               Communication, accountability, and growth mindset matter just as much as technical skill.
@@ -139,9 +139,9 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
             {cultureCards.map((card, index) => (
               <article
                 key={card.title}
-                className={`group overflow-hidden rounded-[30px] border border-black/8 bg-white/84 shadow-[0_16px_28px_rgba(15,39,28,0.08)] transition duration-300 hover:-translate-y-1 ${
+                className={`careers-fade-up group overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.06] shadow-[0_16px_28px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 ${
                   index === 1 ? 'md:translate-y-8' : ''
-                }`}
+                } ${index === 0 ? 'careers-fade-4' : index === 1 ? 'careers-fade-5' : 'careers-fade-6'}`}
               >
                 <div className="overflow-hidden">
                   <img
@@ -151,8 +151,8 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
                   />
                 </div>
                 <div className="p-5">
-                  <h2 className="text-xl font-bold leading-tight text-black/88">{card.title}</h2>
-                  <p className="mt-3 text-sm leading-7 text-black/66">{card.copy}</p>
+                  <h2 className="text-xl font-bold leading-tight text-white/88">{card.title}</h2>
+                  <p className="mt-3 text-sm leading-7 text-white/66">{card.copy}</p>
                 </div>
               </article>
             ))}
@@ -160,12 +160,12 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
         </section>
       </div>
 
-      <section className="relative z-10 mt-14 space-y-2 overflow-hidden">
+      <section className="careers-fade-up careers-fade-5 relative z-10 mt-14 space-y-2 overflow-hidden">
         <div className="marquee-track flex w-max items-center gap-2">
           {loopA.map((item, index) => (
             <span
               key={`${item}-${index}`}
-              className="inline-flex h-9 items-center rounded-full border border-[#d8d0a8] bg-[#ece7c9] px-4 text-sm font-semibold text-lifewood-darkSerpent"
+              className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/6 px-4 text-sm font-semibold text-white/82"
             >
               {item}
             </span>
@@ -175,7 +175,7 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
           {loopB.map((item, index) => (
             <span
               key={`${item}-${index}`}
-              className="inline-flex h-9 items-center rounded-full border border-[#d8d0a8] bg-[#ece7c9] px-4 text-sm font-semibold text-lifewood-darkSerpent"
+              className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/6 px-4 text-sm font-semibold text-white/82"
             >
               {item}
             </span>
@@ -183,11 +183,11 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto mt-20 max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-        <div className="rounded-[38px] border border-black/8 bg-white/78 px-6 py-10 shadow-[0_18px_32px_rgba(15,39,28,0.08)] backdrop-blur-sm md:px-10 md:py-12">
+      <section className="careers-fade-up careers-fade-6 relative z-10 mx-auto mt-20 max-w-6xl px-4 text-center sm:px-6 lg:px-8">
+        <div className="rounded-[38px] border border-white/10 bg-white/[0.06] px-6 py-10 shadow-[0_18px_32px_rgba(0,0,0,0.16)] backdrop-blur-sm md:px-10 md:py-12">
           <SplitText
             text="If you are looking for work that asks more of your thinking, your judgment, and your discipline, this is where the conversation starts."
-            className="careers-quote text-[2rem] leading-[1.18] tracking-[-0.03em] text-black md:text-[3.35rem]"
+            className="careers-quote text-[2rem] leading-[1.18] tracking-[-0.03em] text-white md:text-[3.35rem]"
             delay={16}
             duration={0.8}
             ease="power3.out"
@@ -199,13 +199,13 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
             textAlign="center"
             tag="p"
           />
-          <p className="careers-tagline mt-5 text-lg text-black/62 md:text-[1.4rem]">
+          <p className="careers-tagline mt-5 text-lg text-white/62 md:text-[1.4rem]">
             Work with structure. Grow with range. Deliver with intent.
           </p>
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="careers-fade-up careers-fade-7 relative z-10 mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-[38px] bg-gradient-to-r from-[#0b2f21] via-[#0a4d31] to-[#0b2f21] px-6 py-10 text-white shadow-[0_18px_34px_rgba(4,31,20,0.24)] sm:px-8 md:px-10">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
@@ -238,10 +238,40 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes careersSectionIn {
+          from {
+            opacity: 0;
+            transform: translateY(28px) scale(0.985);
+            filter: blur(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+          }
+        }
+        .careers-fade-up {
+          opacity: 0;
+          animation: careersSectionIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          will-change: transform, opacity, filter;
+        }
+        .careers-fade-1 { animation-delay: 0.05s; }
+        .careers-fade-2 { animation-delay: 0.14s; }
+        .careers-fade-3 { animation-delay: 0.22s; }
+        .careers-fade-4 { animation-delay: 0.3s; }
+        .careers-fade-5 { animation-delay: 0.38s; }
+        .careers-fade-6 { animation-delay: 0.46s; }
+        .careers-fade-7 { animation-delay: 0.54s; }
         .careers-marquee-reverse {
           animation-direction: reverse;
         }
         @media (prefers-reduced-motion: reduce) {
+          .careers-fade-up {
+            animation: none;
+            opacity: 1;
+            filter: none;
+            transform: none;
+          }
           .careers-marquee-reverse {
             animation: none;
           }

@@ -24,11 +24,14 @@ import GhostLoader from './GhostLoader';
 
 const CAREER_BUCKET = 'career-documents';
 const STATUS_OPTIONS = ['submitted', 'reviewed', 'contacted', 'rejected'] as const;
+const DASHBOARD_STATUS_OPTIONS = ['submitted', 'contacted', 'rejected'] as const;
 const CAREER_FILTERS_KEY = 'lifewood-career-filters';
 const CAREER_NOTES_KEY = 'lifewood-career-notes';
 const ACTIVITY_LOG_KEY = 'lifewood-admin-activities';
 const CONTACT_HISTORY_KEY = 'lifewood-contact-history';
 const CAREER_VIEW_MODE_KEY = 'lifewood-career-view-mode';
+const IVA_ADMIN_DIRECTORY_KEY = 'lifewood-iva-admin-directory';
+const HIDDEN_CAREER_IDS_KEY = 'lifewood-hidden-career-ids';
 
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
@@ -122,6 +125,8 @@ const STATUS_META: Record<string, { label: string; badge: string; panel: string;
   },
 };
 
+const normalizeDashboardStatus = (status: string) => (status === 'reviewed' ? 'submitted' : status);
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, onGoHome }) => {
   const [activeSection, setActiveSection] = useState<AdminSection>('overview');
   const [careerApps, setCareerApps] = useState<CareerApplication[]>([]);
@@ -147,7 +152,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   });
   const [selectedCareer, setSelectedCareer] = useState<CareerApplication | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactSubmission | null>(null);
+  const [acceptScheduleModalOpen, setAcceptScheduleModalOpen] = useState(false);
+  const [interviewSchedule, setInterviewSchedule] = useState('');
+  const [interviewAddress, setInterviewAddress] = useState('');
+  const [interviewNotes, setInterviewNotes] = useState('');
+  const [acceptScheduleError, setAcceptScheduleError] = useState('');
   const [careerMailModalOpen, setCareerMailModalOpen] = useState(false);
+  const [careerMailSubject, setCareerMailSubject] = useState('');
+  const [careerMailBody, setCareerMailBody] = useState('');
+  const [careerMailInstruction, setCareerMailInstruction] = useState('');
+  const [careerMailError, setCareerMailError] = useState('');
+  const [draftingCareerMailWithIva, setDraftingCareerMailWithIva] = useState(false);
+  const [sendingCareerMail, setSendingCareerMail] = useState(false);
   const [cvScoreModalOpen, setCvScoreModalOpen] = useState(false);
   const [resumePreviewUrl, setResumePreviewUrl] = useState<string | null>(null);
   const [resumePreviewName, setResumePreviewName] = useState('');
@@ -182,6 +198,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     }
   });
   const [selectedCareerIds, setSelectedCareerIds] = useState<string[]>([]);
+  const [hiddenCareerIds, setHiddenCareerIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(HIDDEN_CAREER_IDS_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [resumeReviewLoading, setResumeReviewLoading] = useState(false);
   const [resumeReviewError, setResumeReviewError] = useState('');
   const [resumeReviews, setResumeReviews] = useState<Record<string, ResumeReview>>({});
@@ -189,7 +212,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(CAREER_FILTERS_KEY) || '{}');
-      if (saved.careerFilter) setCareerFilter(saved.careerFilter);
+      if (saved.careerFilter) setCareerFilter(saved.careerFilter === 'reviewed' ? 'submitted' : saved.careerFilter);
       if (saved.careerPositionFilter) setCareerPositionFilter(saved.careerPositionFilter);
       if (saved.careerCountryFilter) setCareerCountryFilter(saved.careerCountryFilter);
       if (saved.careerSearchInput) {
@@ -258,6 +281,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       // Ignore local storage write failures.
     }
   }, [contactHistory]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(HIDDEN_CAREER_IDS_KEY, JSON.stringify(hiddenCareerIds));
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [hiddenCareerIds]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        IVA_ADMIN_DIRECTORY_KEY,
+        JSON.stringify({
+          careers: careerApps
+            .filter((app) => !hiddenCareerIds.includes(app.id))
+            .map((app) => ({
+            ...app,
+            resumeReview: resumeReviews[app.id] || null,
+          })),
+          contacts: contactMessages,
+        })
+      );
+    } catch {
+      // Ignore local storage write failures.
+    }
+  }, [careerApps, contactMessages, hiddenCareerIds, resumeReviews]);
+
+  useEffect(() => {
+    return () => {
+      window.localStorage.removeItem(IVA_ADMIN_DIRECTORY_KEY);
+    };
+  }, []);
 
   const fetchCareers = useCallback(async () => {
     setLoadingCareers(true);
@@ -340,8 +396,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     // This hook exists so we have a single place to clear the key if needed.
   }, []);
 
-  const filteredCareers = careerApps.filter((app) => {
-    const matchStatus = careerFilter === 'all' || app.status === careerFilter;
+  const visibleCareerApps = careerApps.filter((app) => !hiddenCareerIds.includes(app.id));
+
+  const filteredCareers = visibleCareerApps.filter((app) => {
+    const appStatus = normalizeDashboardStatus(app.status);
+    const matchStatus = careerFilter === 'all' || appStatus === careerFilter;
     const matchPosition = careerPositionFilter === 'all' || app.position_applied === careerPositionFilter;
     const matchCountry = careerCountryFilter === 'all' || app.country === careerCountryFilter;
     const q = careerSearch.toLowerCase().trim();
@@ -364,15 +423,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     );
   });
 
-  const newCareersCount = careerApps.filter((a) => a.status === 'submitted').length;
+  const newCareersCount = visibleCareerApps.filter((a) => a.status === 'submitted').length;
   const unreadContactCount = contactMessages.filter((m) => !m.read).length;
   const showCareersLoading = loadingCareers && careerApps.length === 0;
   const showContactLoading = loadingContact && contactMessages.length === 0;
   const selectedCareerNote = selectedCareer ? careerNotes[selectedCareer.id] || '' : '';
   const selectedResumeReview = selectedCareer ? resumeReviews[selectedCareer.id] : undefined;
   const selectedCount = selectedCareerIds.length;
-  const nextProcessWaitlist = careerApps.filter((app) => app.status === 'contacted');
-  const futureRolesWaitlist = careerApps.filter((app) => app.status === 'rejected');
+  const nextProcessWaitlist = visibleCareerApps.filter((app) => app.status === 'contacted');
+  const futureRolesWaitlist = visibleCareerApps.filter((app) => app.status === 'rejected');
   const waitlistQuery = waitlistSearch.trim().toLowerCase();
   const visibleWaitlist = (waitlistTab === 'next' ? nextProcessWaitlist : futureRolesWaitlist).filter((app) => {
     if (!waitlistQuery) return true;
@@ -384,13 +443,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     );
   });
 
-  const statusBreakdown = STATUS_OPTIONS.map((status) => ({
+  const statusBreakdown = DASHBOARD_STATUS_OPTIONS.map((status) => ({
     status,
-    count: careerApps.filter((a) => a.status === status).length,
+    count: visibleCareerApps.filter((a) => normalizeDashboardStatus(a.status) === status).length,
   }));
 
-  const uniquePositions = Array.from(new Set(careerApps.map((a) => a.position_applied))).sort();
-  const uniqueCountries = Array.from(new Set(careerApps.map((a) => a.country))).sort();
+  const uniquePositions = Array.from(new Set(visibleCareerApps.map((a) => a.position_applied))).sort();
+  const uniqueCountries = Array.from(new Set(visibleCareerApps.map((a) => a.country))).sort();
 
   const pushActivity = useCallback((item: Omit<ActivityItem, 'id' | 'createdAt'>) => {
     setActivities((prev) => [
@@ -442,12 +501,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   }, [filteredCareers]);
 
   useEffect(() => {
+    if (selectedCareer && hiddenCareerIds.includes(selectedCareer.id)) {
+      setSelectedCareer(null);
+    }
+  }, [hiddenCareerIds, selectedCareer]);
+
+  useEffect(() => {
     if (!selectedCareer) return;
     setResumeReviewError('');
     if (!resumeReviews[selectedCareer.id]) {
       void handleGenerateResumeReview(selectedCareer);
     }
   }, [selectedCareer]);
+
+  useEffect(() => {
+    if (!careerMailModalOpen || !selectedCareer) return;
+    const draft = buildApplicantMailto(selectedCareer);
+    setCareerMailSubject(draft.subject);
+    setCareerMailBody(draft.body);
+    setCareerMailInstruction('');
+    setCareerMailError('');
+  }, [careerMailModalOpen, selectedCareer]);
+
+  useEffect(() => {
+    if (!acceptScheduleModalOpen) return;
+    setAcceptScheduleError('');
+  }, [acceptScheduleModalOpen]);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     setUpdatingStatus(true);
@@ -466,7 +545,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     setUpdatingStatus(false);
   };
 
-  const sendDecisionEmail = async (app: CareerApplication, decision: 'contacted' | 'rejected') => {
+  const handleHideCareerLocally = (app: CareerApplication) => {
+    setHiddenCareerIds((prev) => (prev.includes(app.id) ? prev : [app.id, ...prev]));
+    setSelectedCareerIds((prev) => prev.filter((id) => id !== app.id));
+    setSelectedCareer(null);
+    pushActivity({
+      type: 'status',
+      title: `${app.first_name} ${app.last_name} hidden from dashboard`,
+      detail: 'Front-end only. Database record was not changed.',
+    });
+    openToast('Applicant removed from dashboard', 'This only affects your current admin UI and does not delete the database record.');
+  };
+
+  const formatInterviewSchedule = (value: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(undefined, {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+  };
+
+  const sendDecisionEmail = async (
+    app: CareerApplication,
+    decision: 'contacted' | 'rejected',
+    options?: {
+      interviewSchedule?: string;
+      interviewAddress?: string;
+      interviewNotes?: string;
+    }
+  ) => {
     if (
       !EMAILJS_DECISION_PUBLIC_KEY ||
       !EMAILJS_DECISION_SERVICE_ID ||
@@ -489,10 +598,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       last_name: app.last_name,
       position_applied: app.position_applied,
       website_link: EMAILJS_WEBSITE_LINK,
+      interview_schedule: options?.interviewSchedule || '',
+      interview_address: options?.interviewAddress || '',
+      interview_notes: options?.interviewNotes || '',
     });
   };
 
-  const handleDecisionAction = async (app: CareerApplication, decision: 'contacted' | 'rejected') => {
+  const handleDecisionAction = async (
+    app: CareerApplication,
+    decision: 'contacted' | 'rejected',
+    options?: {
+      interviewSchedule?: string;
+      interviewAddress?: string;
+      interviewNotes?: string;
+    }
+  ) => {
     setDecisionSending(decision);
     try {
       await supabase.from('career_applications').update({ status: decision }).eq('id', app.id);
@@ -507,7 +627,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       });
 
       try {
-        await sendDecisionEmail(app, decision);
+        await sendDecisionEmail(app, decision, options);
         pushActivity({
           type: 'reply',
           title: `${decision === 'contacted' ? 'Acceptance' : 'Rejection'} email sent to ${app.first_name} ${app.last_name}`,
@@ -515,7 +635,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         });
         openToast(
           decision === 'contacted' ? 'Added to next-process waitlist' : 'Added to future-roles waitlist',
-          `${decision === 'contacted' ? 'Acceptance' : 'Rejection'} email sent to ${app.first_name} ${app.last_name}.`
+          decision === 'contacted'
+            ? `Acceptance email with interview details sent to ${app.first_name} ${app.last_name}.`
+            : `Rejection email sent to ${app.first_name} ${app.last_name}.`
         );
       } catch (emailError) {
         openToast(
@@ -526,6 +648,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     } finally {
       setDecisionSending(null);
     }
+  };
+
+  const handleApproveWithSchedule = async () => {
+    if (!selectedCareer) return;
+    if (!interviewSchedule.trim() || !interviewAddress.trim()) {
+      setAcceptScheduleError('Interview schedule and address are required before accepting the applicant.');
+      return;
+    }
+
+    await handleDecisionAction(selectedCareer, 'contacted', {
+      interviewSchedule: formatInterviewSchedule(interviewSchedule),
+      interviewAddress: interviewAddress.trim(),
+      interviewNotes: interviewNotes.trim(),
+    });
+
+    setAcceptScheduleModalOpen(false);
+    setInterviewSchedule('');
+    setInterviewAddress('');
+    setInterviewNotes('');
+    setAcceptScheduleError('');
   };
 
   const openWaitlistLane = (lane: WaitlistTab) => {
@@ -821,24 +963,128 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     };
   };
 
-  const logApplicantContact = (app: CareerApplication) => {
-    const draft = buildApplicantMailto(app);
+  const parseIvaEmailDraft = (raw: string, fallbackSubject: string) => {
+    const cleaned = raw.trim();
+    const subjectMatch = cleaned.match(/subject\s*:\s*(.+)/i);
+    const bodyMatch = cleaned.match(/body\s*:\s*([\s\S]+)/i);
+
+    const parsedSubject = subjectMatch?.[1]?.trim() || fallbackSubject;
+    const parsedBody = bodyMatch?.[1]?.trim() || cleaned.replace(/subject\s*:\s*.+/i, '').trim();
+
+    return {
+      subject: parsedSubject,
+      body: parsedBody,
+    };
+  };
+
+  const logApplicantEmail = (app: CareerApplication, subject: string, source: 'gmail' | 'emailjs') => {
     setContactHistory((prev) => [
       {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         applicantId: app.id,
         applicantName: `${app.first_name} ${app.last_name}`,
         status: app.status,
-        subject: draft.subject,
+        subject,
         createdAt: new Date().toISOString(),
       },
       ...prev,
     ].slice(0, 20));
     pushActivity({
       type: 'contact',
-      title: `Contact draft opened for ${app.first_name} ${app.last_name}`,
-      detail: draft.subject,
+      title: `${source === 'emailjs' ? 'Email sent to' : 'Draft opened for'} ${app.first_name} ${app.last_name}`,
+      detail: subject,
     });
+  };
+
+  const handleDraftCareerMailWithIva = async () => {
+    if (!selectedCareer) return;
+    setDraftingCareerMailWithIva(true);
+    setCareerMailError('');
+    try {
+      const fallback = buildApplicantMailto(selectedCareer);
+      const prompt = `You are Iva, Lifewood's internal admin assistant.
+
+Draft a professional email for this applicant.
+
+Applicant:
+- Name: ${selectedCareer.first_name} ${selectedCareer.last_name}
+- Role: ${selectedCareer.position_applied}
+- Status: ${selectedCareer.status}
+- Country: ${selectedCareer.country}
+- Email: ${selectedCareer.email}
+- CV score summary: ${selectedResumeReview?.summary || 'Not available'}
+- CV recommendation: ${selectedResumeReview?.recommendation || 'Not available'}
+
+Admin instruction:
+${careerMailInstruction.trim() || 'Write the most appropriate professional update based on the applicant’s current status.'}
+
+Return plain text only in this exact format:
+Subject: <email subject>
+Body:
+<email body>
+
+The body should be ready to send, professional, human, and specific. Do not use placeholders.`;
+
+      const draft = await getIvaResponse(prompt, [], {
+        mode: 'admin',
+        adminContext: {
+          type: 'career',
+          data: {
+            ...selectedCareer,
+            resumeReview: selectedResumeReview,
+          },
+        },
+      });
+
+      const parsed = parseIvaEmailDraft(draft, fallback.subject);
+      setCareerMailSubject(parsed.subject);
+      setCareerMailBody(parsed.body);
+    } catch (err) {
+      setCareerMailError(
+        err instanceof Error ? err.message : 'Unable to draft the candidate email with Iva right now.'
+      );
+    } finally {
+      setDraftingCareerMailWithIva(false);
+    }
+  };
+
+  const handleSendCareerMailWithEmailJs = async () => {
+    if (!selectedCareer || !careerMailSubject.trim() || !careerMailBody.trim()) return;
+    if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_CONTACT_TEMPLATE_ID) {
+      setCareerMailError('EmailJS candidate mail settings are incomplete. Check your existing EmailJS env keys.');
+      return;
+    }
+
+    setSendingCareerMail(true);
+    setCareerMailError('');
+    try {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONTACT_TEMPLATE_ID, {
+        to_email: selectedCareer.email,
+        email: selectedCareer.email,
+        first_name: selectedCareer.first_name,
+        last_name: selectedCareer.last_name,
+        subject: careerMailSubject.trim(),
+        reply_body: careerMailBody.trim(),
+        website_link: EMAILJS_WEBSITE_LINK,
+        position_applied: selectedCareer.position_applied,
+      });
+
+      logApplicantEmail(selectedCareer, careerMailSubject.trim(), 'emailjs');
+      openToast('Candidate email sent', `Your email to ${selectedCareer.first_name} ${selectedCareer.last_name} was sent with EmailJS.`);
+      setCareerMailModalOpen(false);
+    } catch (err) {
+      setCareerMailError(
+        err instanceof Error ? err.message : 'Unable to send the candidate email with EmailJS.'
+      );
+    } finally {
+      setSendingCareerMail(false);
+    }
+  };
+
+  const logApplicantContact = (app: CareerApplication) => {
+    const draft = buildApplicantMailto(app);
+    logApplicantEmail(app, draft.subject, 'gmail');
     openToast('Gmail draft opened', `Prepared a ${app.status} email for ${app.first_name} ${app.last_name}.`);
   };
 
@@ -859,8 +1105,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
     const marketFit =
       app.status === 'contacted'
         ? 'High'
-        : app.status === 'reviewed'
-        ? 'Promising'
         : app.status === 'submitted'
         ? 'Pending'
         : 'Closed';
@@ -999,8 +1243,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                   <p className="text-xs uppercase tracking-[0.16em] text-white/45">At a Glance</p>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="text-3xl font-black text-white">{statusBreakdown.find(({ status }) => status === 'reviewed')?.count ?? 0}</p>
-                      <p className="mt-1 text-sm text-white/62">applications already reviewed</p>
+                      <p className="text-3xl font-black text-white">{statusBreakdown.find(({ status }) => status === 'submitted')?.count ?? 0}</p>
+                      <p className="mt-1 text-sm text-white/62">applications in active review queue</p>
                     </div>
                     <div className="h-px bg-white/8" />
                     <div>
@@ -1018,8 +1262,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                     className={`rounded-2xl border px-4 py-4 text-xs ${
                       status === 'submitted'
                         ? 'border-lifewood-saffron/18 bg-lifewood-saffron/5'
-                        : status === 'reviewed'
-                        ? 'border-cyan-300/14 bg-cyan-300/5'
                         : status === 'contacted'
                         ? 'border-emerald-300/14 bg-emerald-300/5'
                         : 'border-red-300/14 bg-red-300/5'
@@ -1030,8 +1272,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                         className={`h-2 w-2 rounded-full ${
                           status === 'submitted'
                             ? 'bg-lifewood-saffron'
-                            : status === 'reviewed'
-                            ? 'bg-cyan-300'
                             : status === 'contacted'
                             ? 'bg-emerald-300'
                             : 'bg-red-300'
@@ -1315,8 +1555,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                           className="w-full rounded-2xl border border-white/12 bg-black/25 px-3 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
                         >
                           <option value="all">All</option>
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>{s}</option>
+                          {DASHBOARD_STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{STATUS_META[s].label}</option>
                           ))}
                         </select>
                       </label>
@@ -1402,13 +1642,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 {selectedCount > 0 && (
                   <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-lifewood-saffron/22 bg-lifewood-saffron/6 px-4 py-3 text-sm">
                     <span className="font-semibold text-lifewood-saffron">{selectedCount} selected</span>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkUpdateStatus('reviewed')}
-                      className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-300/18"
-                    >
-                      Mark reviewed
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleBulkUpdateStatus('contacted')}
@@ -1981,12 +2214,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => handleDecisionAction(selectedCareer, 'contacted')}
+                onClick={() => {
+                  setAcceptScheduleModalOpen(true);
+                  setAcceptScheduleError('');
+                }}
                 disabled={updatingStatus || decisionSending !== null || isDecisionLocked(selectedCareer)}
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                {selectedCareer.status === 'contacted' ? 'Accepted' : decisionSending === 'contacted' ? 'Approving…' : 'Approve'}
+                {selectedCareer.status === 'contacted' ? 'Accepted' : decisionSending === 'contacted' ? 'Sending acceptance…' : 'Approve'}
               </button>
               <button
                 type="button"
@@ -2016,7 +2252,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 <BarChart3 className="h-4 w-4" />
                 CV Score
               </button>
+              <button
+                type="button"
+                onClick={() => handleHideCareerLocally(selectedCareer)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/18 bg-black/30 px-4 py-2.5 text-sm font-semibold text-white/82 hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+                Delete applicant
+              </button>
               </div>
+              <p className="mt-3 text-xs text-white/42">
+                Delete applicant only removes this record from the current dashboard view. It does not affect the database.
+              </p>
             </div>
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -2078,6 +2325,108 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
         </div>
       )}
 
+      {acceptScheduleModalOpen && selectedCareer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setAcceptScheduleModalOpen(false)}
+        >
+          <div
+            className="relative my-6 flex w-full max-w-2xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0e1512] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setAcceptScheduleModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Approve Applicant</p>
+            <h3 className="mt-2 text-2xl font-bold text-white">Set the interview schedule first</h3>
+            <p className="mt-2 text-sm text-white/62">
+              The applicant will only be accepted after you confirm the interview schedule and address. Those details will be included in the acceptance email.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/42">Applicant</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {selectedCareer.first_name} {selectedCareer.last_name}
+                </p>
+                <p className="mt-1 text-sm text-white/58">{selectedCareer.email}</p>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <p className="text-white/38">Position</p>
+                    <p className="mt-1 font-medium text-white/84">{selectedCareer.position_applied}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/38">Current status</p>
+                    <p className="mt-1 font-medium text-white/84">{STATUS_META[selectedCareer.status]?.label || selectedCareer.status}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-white/38">Interview schedule</p>
+                    <input
+                      type="datetime-local"
+                      value={interviewSchedule}
+                      onChange={(e) => setInterviewSchedule(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white focus:border-lifewood-saffron/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white/38">Interview address</p>
+                    <input
+                      type="text"
+                      value={interviewAddress}
+                      onChange={(e) => setInterviewAddress(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                      placeholder="Enter the interview location or meeting address"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-white/38">Additional notes</p>
+                    <textarea
+                      rows={4}
+                      value={interviewNotes}
+                      onChange={(e) => setInterviewNotes(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] p-4 text-sm text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                      placeholder="Optional: add instructions like bring an ID, arrive 15 minutes early, or meeting room details."
+                    />
+                  </div>
+                  {acceptScheduleError ? (
+                    <div className="rounded-2xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm text-red-200">
+                      {acceptScheduleError}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setAcceptScheduleModalOpen(false)}
+                className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/78 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleApproveWithSchedule()}
+                disabled={decisionSending !== null}
+                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {decisionSending === 'contacted' ? 'Accepting…' : 'Confirm acceptance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {careerMailModalOpen && selectedCareer && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
@@ -2094,9 +2443,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               <X className="h-5 w-5" />
             </button>
             <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Contact Applicant</p>
-            <h3 className="mt-2 text-2xl font-bold text-white">Open Gmail with a status-based draft</h3>
+            <h3 className="mt-2 text-2xl font-bold text-white">Draft and send candidate email</h3>
             <p className="mt-2 text-sm text-white/62">
-              The draft below is generated from the applicant&apos;s current status in the review panel.
+              Start from the applicant&apos;s current status, let Iva refine the message, then send it with EmailJS.
             </p>
 
             <div className="mt-5 grid flex-1 gap-4 overflow-y-auto pr-1 md:grid-cols-[1fr_1.2fr]">
@@ -2119,20 +2468,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-[0.16em] text-white/42">Draft Preview</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/42">Email Composer</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleDraftCareerMailWithIva()}
+                    disabled={draftingCareerMailWithIva || sendingCareerMail}
+                    className="inline-flex items-center gap-2 rounded-xl border border-lifewood-saffron/25 bg-lifewood-saffron/10 px-3 py-2 text-xs font-semibold text-lifewood-saffron hover:bg-lifewood-saffron/18 disabled:opacity-60"
+                  >
+                    {draftingCareerMailWithIva ? 'Drafting with Iva…' : 'Generate with Iva'}
+                  </button>
+                </div>
                 <div className="mt-4 space-y-4">
                   <div>
+                    <p className="text-white/38">Admin instruction</p>
+                    <textarea
+                      rows={4}
+                      value={careerMailInstruction}
+                      onChange={(e) => setCareerMailInstruction(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] p-4 text-sm leading-6 text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                      placeholder="Example: Invite the candidate to the next interview stage and keep the tone warm but concise."
+                    />
+                  </div>
+                  <div>
                     <p className="text-white/38">Subject</p>
-                    <p className="mt-1 text-sm font-medium text-white/86">
-                      {buildApplicantMailto(selectedCareer).subject}
-                    </p>
+                    <input
+                      type="text"
+                      value={careerMailSubject}
+                      onChange={(e) => setCareerMailSubject(e.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0b110e] px-4 py-3 text-sm font-medium text-white placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                    />
                   </div>
                   <div>
                     <p className="text-white/38">Body</p>
-                    <div className="mt-2 max-h-[50vh] overflow-y-auto rounded-2xl border border-white/8 bg-[#0b110e] p-4 text-sm leading-7 text-white/74 whitespace-pre-wrap">
-                      {buildApplicantMailto(selectedCareer).body}
-                    </div>
+                    <textarea
+                      rows={12}
+                      value={careerMailBody}
+                      onChange={(e) => setCareerMailBody(e.target.value)}
+                      className="mt-2 max-h-[50vh] w-full overflow-y-auto rounded-2xl border border-white/8 bg-[#0b110e] p-4 text-sm leading-7 text-white/74 whitespace-pre-wrap placeholder:text-white/35 focus:border-lifewood-saffron/50 focus:outline-none"
+                    />
                   </div>
+                  {careerMailError ? (
+                    <div className="rounded-2xl border border-red-300/20 bg-red-300/5 px-4 py-3 text-sm text-red-200">
+                      {careerMailError}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -2146,18 +2526,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
                 Cancel
               </button>
               <a
-                href={buildApplicantMailto(selectedCareer).url}
+                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedCareer.email)}&su=${encodeURIComponent(careerMailSubject)}&body=${encodeURIComponent(careerMailBody)}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => {
                   logApplicantContact(selectedCareer);
-                  setCareerMailModalOpen(false);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/82 hover:bg-white/10"
               >
                 <Mail className="h-4 w-4" />
                 Open Gmail
               </a>
+              <button
+                type="button"
+                onClick={() => void handleSendCareerMailWithEmailJs()}
+                disabled={sendingCareerMail || draftingCareerMailWithIva || !careerMailSubject.trim() || !careerMailBody.trim()}
+                className="inline-flex items-center gap-2 rounded-xl bg-lifewood-saffron px-4 py-2.5 text-sm font-semibold text-lifewood-darkSerpent hover:bg-lifewood-earth disabled:opacity-60"
+              >
+                <Mail className="h-4 w-4" />
+                {sendingCareerMail ? 'Sending email…' : 'Send email'}
+              </button>
             </div>
           </div>
         </div>

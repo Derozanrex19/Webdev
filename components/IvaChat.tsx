@@ -1,26 +1,190 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, Bot, Sparkles, Loader2, X, Trash2 } from 'lucide-react';
-import { getIvaResponse } from '../services/geminiService';
+import { getIvaResponse, getResumeReviewFromUrl, type IvaAdminContext } from '../services/geminiService';
 import { ChatMessage } from '../types';
+import { supabase } from '../services/supabaseClient';
+
+const CAREER_BUCKET = 'career-documents';
+const IVA_ADMIN_DIRECTORY_KEY = 'lifewood-iva-admin-directory';
+
+type AdminCareerDirectoryItem = {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  position_applied?: string;
+  country?: string;
+  email?: string;
+  phone_code?: string;
+  phone_number?: string;
+  gender?: string;
+  age?: number | string;
+  current_address?: string;
+  status?: string;
+  resume_path?: string;
+  resume_file_name?: string;
+  resumeReview?: {
+    score?: number;
+    summary?: string;
+    strengths?: string[];
+    improvements?: string[];
+    recommendation?: string;
+  } | null;
+};
+
+type AdminDirectory = {
+  careers?: AdminCareerDirectoryItem[];
+  contacts?: Array<{
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    message?: string;
+  }>;
+};
 
 interface IvaChatProps {
   isOpen: boolean;
   onClose: () => void;
+  adminOnly?: boolean;
 }
 
-const initialMessage: ChatMessage = {
+const getInitialMessage = (adminOnly: boolean): ChatMessage => ({
   id: 'welcome',
   role: 'model',
-  text:
-    "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
+  text: adminOnly
+    ? "Hello, I am Iva. I can help you review applicants, assess CVs, draft replies, and support administrative decisions inside the Lifewood dashboard."
+    : "Hello, I am Iva. Lifewood's Intelligent Virtual Assistant. I can explain our data processing capabilities, ESG initiatives, or global reach. How may I assist your business today?",
   timestamp: new Date(),
-};
+});
 
-const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
+const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose, adminOnly = false }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([getInitialMessage(adminOnly)]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [adminContext, setAdminContext] = useState<IvaAdminContext | null>(null);
+  const [adminDirectory, setAdminDirectory] = useState<AdminDirectory>({});
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const loadAdminDirectory = useCallback(() => {
+    try {
+      const raw = window.localStorage.getItem(IVA_ADMIN_DIRECTORY_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) as AdminDirectory;
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const buildCareerContext = useCallback((career: AdminCareerDirectoryItem): IvaAdminContext => ({
+    type: 'career',
+    data: {
+      first_name: career.first_name,
+      last_name: career.last_name,
+      position_applied: career.position_applied,
+      country: career.country,
+      email: career.email,
+      phone_code: career.phone_code,
+      phone_number: career.phone_number,
+      gender: career.gender,
+      age: career.age,
+      current_address: career.current_address,
+      status: career.status,
+      resumeReview: career.resumeReview || undefined,
+    },
+  }), []);
+
+  const candidateMentionFromPrompt = useCallback((prompt: string, directory: AdminDirectory) => {
+    const normalizedPrompt = prompt.toLowerCase();
+    const careers = directory.careers || [];
+    return careers.find((career) => {
+      const fullName = `${career.first_name || ''} ${career.last_name || ''}`.trim().toLowerCase();
+      return Boolean(
+        fullName && normalizedPrompt.includes(fullName) ||
+        (career.email && normalizedPrompt.includes(career.email.toLowerCase()))
+      );
+    }) || null;
+  }, []);
+
+  const buildAdminDirectorySummary = useCallback((directory: AdminDirectory) => {
+    const careers = (directory.careers || []).slice(0, 40).map((career) => {
+      const fullName = `${career.first_name || ''} ${career.last_name || ''}`.trim() || 'Unknown candidate';
+      const reviewScore = career.resumeReview?.score;
+      return [
+        `Candidate: ${fullName}`,
+        `Role: ${career.position_applied || 'Unknown role'}`,
+        `Status: ${career.status || 'Unknown'}`,
+        `Country: ${career.country || 'Unknown'}`,
+        `Email: ${career.email || 'Unknown'}`,
+        reviewScore !== undefined ? `CV Score: ${reviewScore}/100` : 'CV Score: not generated yet',
+      ].join(' | ');
+    });
+
+    const contacts = (directory.contacts || []).slice(0, 20).map((contact) => {
+      const fullName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unknown sender';
+      return `Contact: ${fullName} | Email: ${contact.email || 'Unknown'} | Message: ${(contact.message || '').slice(0, 140)}`;
+    });
+
+    return [...careers, ...contacts].join('\n');
+  }, []);
+
+  const ensureCareerContextForPrompt = useCallback(async (prompt: string) => {
+    const directory = loadAdminDirectory();
+    setAdminDirectory(directory);
+
+    const matchedCareer = candidateMentionFromPrompt(prompt, directory);
+    if (!matchedCareer) {
+      return adminContext;
+    }
+
+    if (matchedCareer.resumeReview) {
+      const nextContext = buildCareerContext(matchedCareer);
+      setAdminContext(nextContext);
+      return nextContext;
+    }
+
+    if (!matchedCareer.resume_path) {
+      const nextContext = buildCareerContext(matchedCareer);
+      setAdminContext(nextContext);
+      return nextContext;
+    }
+
+    try {
+      const { data, error } = await supabase.storage.from(CAREER_BUCKET).createSignedUrl(matchedCareer.resume_path, 60);
+      if (error || !data?.signedUrl) {
+        const nextContext = buildCareerContext(matchedCareer);
+        setAdminContext(nextContext);
+        return nextContext;
+      }
+
+      const review = await getResumeReviewFromUrl(data.signedUrl, {
+        firstName: matchedCareer.first_name || '',
+        lastName: matchedCareer.last_name || '',
+        position: matchedCareer.position_applied || 'Unknown role',
+        country: matchedCareer.country || 'Unknown country',
+        status: matchedCareer.status || 'submitted',
+      });
+
+      const nextDirectory: AdminDirectory = {
+        ...directory,
+        careers: (directory.careers || []).map((career) =>
+          career.id === matchedCareer.id ? { ...career, resumeReview: review } : career
+        ),
+      };
+      try {
+        window.localStorage.setItem(IVA_ADMIN_DIRECTORY_KEY, JSON.stringify(nextDirectory));
+      } catch {
+        // Ignore local storage write failures.
+      }
+      setAdminDirectory(nextDirectory);
+
+      const nextContext = buildCareerContext({ ...matchedCareer, resumeReview: review });
+      setAdminContext(nextContext);
+      return nextContext;
+    } catch {
+      const nextContext = buildCareerContext(matchedCareer);
+      setAdminContext(nextContext);
+      return nextContext;
+    }
+  }, [adminContext, buildCareerContext, candidateMentionFromPrompt, loadAdminDirectory]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -29,14 +193,23 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [messages, isOpen]);
 
-  const submitPrompt = useCallback(async (prompt: string) => {
+  const submitPrompt = useCallback(
+    async (
+      prompt: string,
+      displayText?: string,
+      historySeed?: ChatMessage[],
+      contextOverride?: IvaAdminContext | null
+    ) => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
+    const visibleText = displayText?.trim() || trimmed;
+    const resolvedContext = contextOverride ?? (adminOnly ? await ensureCareerContextForPrompt(trimmed) : adminContext);
+    const activeContext = resolvedContext ?? adminContext;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      text: trimmed,
+      text: visibleText,
       timestamp: new Date(),
     };
 
@@ -45,8 +218,13 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const historyForModel = [...messages, userMsg].map((m) => ({ role: m.role, text: m.text }));
-      const responseText = await getIvaResponse(trimmed, historyForModel);
+      const baseMessages = historySeed ?? messages;
+      const historyForModel = [...baseMessages.map((m) => ({ role: m.role, text: m.text })), { role: 'user', text: trimmed }];
+      const responseText = await getIvaResponse(trimmed, historyForModel, {
+        mode: adminOnly || activeContext ? 'admin' : 'public',
+        adminContext: activeContext,
+        adminDirectorySummary: adminOnly ? buildAdminDirectorySummary(loadAdminDirectory()) : '',
+      });
 
       const modelMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -61,16 +239,28 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages]);
+    },
+    [adminContext, adminOnly, buildAdminDirectorySummary, ensureCareerContextForPrompt, loadAdminDirectory, messages]
+  );
+
+  useEffect(() => {
+    setMessages([getInitialMessage(adminOnly)]);
+  }, [adminOnly]);
 
   useEffect(() => {
     if (!isOpen) return;
+    setAdminDirectory(loadAdminDirectory());
 
     const raw = window.localStorage.getItem('ivaAdminContext');
-    if (!raw) return;
+    if (!raw) {
+      if (!adminOnly) {
+        setAdminContext(null);
+      }
+      return;
+    }
     window.localStorage.removeItem('ivaAdminContext');
 
-    let parsed: { type: 'career' | 'contact'; data: any } | null = null;
+    let parsed: IvaAdminContext | null = null;
     try {
       parsed = JSON.parse(raw);
     } catch {
@@ -78,14 +268,30 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
     }
     if (!parsed) return;
 
-    const { type, data } = parsed;
-    const question =
-      type === 'career'
-        ? `You are Lifewood's virtual assistant helping an admin review a job application.\n\nCandidate name: ${data.first_name} ${data.last_name}\nPosition: ${data.position_applied}\nCountry: ${data.country}\nEmail: ${data.email}\nPhone: ${data.phone_code} ${data.phone_number}\nGender: ${data.gender}\nAge: ${data.age}\nAddress: ${data.current_address}\nStatus: ${data.status}\n\nSummarize this candidate in 3–4 sentences and suggest concise next steps for the recruiter. Be specific but brief.`
-        : `You are Lifewood's virtual assistant helping an admin respond to a contact message.\n\nSender: ${data.first_name} ${data.last_name}\nEmail: ${data.email}\nMessage:\n${data.message}\n\nFirst, summarize what this person is asking for in 1–2 sentences. Then suggest a short, warm, professional reply the admin could send (3–4 sentences).`;
+    setAdminContext(parsed);
 
-    void submitPrompt(question);
-  }, [isOpen, submitPrompt]);
+    const question =
+      parsed.type === 'career'
+        ? `You are helping me review a candidate for Lifewood.\n\nGive me:
+1. A concise recruiter assessment
+2. Whether this candidate looks strong, moderate, or weak for the role
+3. The main strengths
+4. The main risks or gaps
+5. The most sensible next step`
+        : `You are helping me handle a Lifewood contact message.\n\nGive me:
+1. A short summary of what this person wants
+2. The tone I should use in replying
+3. A ready-to-send professional reply`;
+
+    const displayText =
+      parsed.type === 'career'
+        ? `Review ${parsed.data.first_name || 'this'} ${parsed.data.last_name || 'candidate'} and tell me your assessment`
+        : `Help me handle this contact message`;
+
+    const seededMessages = [getInitialMessage(adminOnly)];
+    setMessages(seededMessages);
+    void submitPrompt(question, displayText, seededMessages, parsed);
+  }, [adminOnly, isOpen, loadAdminDirectory, submitPrompt]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -103,11 +309,29 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const suggestedPrompts = [
-    'How does Lifewood ensure data accuracy?',
-    'Tell me about the Pottya initiative.',
-    'Where are your offices located?',
-  ];
+  const suggestedPrompts = adminContext?.type === 'career'
+    ? [
+        'Is this candidate a strong fit for the role?',
+        'What are the biggest risks in this application?',
+        'Draft a next-step message for this candidate.',
+      ]
+    : adminContext?.type === 'contact'
+      ? [
+          'Summarize this message for me.',
+          'Draft a professional reply.',
+          'What is the best next action here?',
+        ]
+      : adminOnly
+        ? [
+            'Which candidate should I prioritize next?',
+            'Who looks strongest among the current applicants?',
+            'Draft a professional update for an applicant.',
+          ]
+        : [
+          'How does Lifewood ensure data accuracy?',
+          'Tell me about the Pottya initiative.',
+          'Where are your offices located?',
+        ];
 
   if (!isOpen) return null;
 
@@ -129,14 +353,32 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
                   <p className="text-xs uppercase tracking-[0.2em] text-lifewood-saffron">Always On</p>
                 </div>
               </div>
+              {adminContext?.type === 'career' ? (
+                <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-lifewood-saffron/25 bg-lifewood-saffron/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-lifewood-saffron">
+                  Recruiter Review Mode: {(adminContext.data.first_name || '').trim()} {(adminContext.data.last_name || '').trim()}
+                </div>
+              ) : adminContext?.type === 'contact' ? (
+                <div className="mt-3 inline-flex max-w-full items-center rounded-full border border-lifewood-saffron/25 bg-lifewood-saffron/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-lifewood-saffron">
+                  Admin Reply Mode
+                </div>
+              ) : null}
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-lifewood-earth">
-                Ask about Lifewood services, ESG initiatives, global reach, or let Iva help with admin workflows.
+                {adminContext
+                  ? 'Iva can now assess the active record, suggest next steps, draft replies, and help with admin decision-making.'
+                  : adminOnly
+                    ? `Iva can search the current admin records${(adminDirectory.careers || []).length ? ` across ${(adminDirectory.careers || []).length} applicants` : ''}, review CVs, and help with recruiter decisions.`
+                    : 'Ask about Lifewood services, ESG initiatives, global reach, or let Iva help with admin workflows.'}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setMessages([initialMessage])}
+                onClick={() => {
+                  setMessages([getInitialMessage(adminOnly)]);
+                  if (!adminOnly) {
+                    setAdminContext(null);
+                  }
+                }}
                 className="rounded-full p-2 text-white/55 hover:bg-white/10 hover:text-white"
                 aria-label="Clear chat"
               >
@@ -196,7 +438,9 @@ const IvaChat: React.FC<IvaChatProps> = ({ isOpen, onClose }) => {
               <div className="flex justify-start">
                 <div className="flex items-center space-x-3 rounded-2xl rounded-bl-none border border-gray-100 bg-white p-4 shadow-sm">
                   <Loader2 className="h-4 w-4 animate-spin text-lifewood-saffron" />
-                  <span className="text-sm font-medium text-gray-500">Processing ecosystem data...</span>
+                  <span className="text-sm font-medium text-gray-500">
+                    {adminContext ? 'Reviewing admin context...' : 'Processing ecosystem data...'}
+                  </span>
                 </div>
               </div>
             )}

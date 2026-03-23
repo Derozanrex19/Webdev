@@ -20,6 +20,8 @@ import GhostLoader from './components/GhostLoader';
 import { Page } from './types';
 import { supabase } from './services/supabaseClient';
 
+const EXPLICIT_LOGIN_SESSION_KEY = 'lifewood-explicit-admin-login';
+
 const App = () => {
   const withTimeout = useCallback(
     async (promise, ms = 15000) => {
@@ -110,6 +112,8 @@ const App = () => {
 
   const [currentPage, setCurrentPage] = useState(() => getPageFromHash());
   const [loginIntent, setLoginIntent] = useState('admin');
+  const isAdminWorkspace =
+    currentPage === Page.INTERNAL && authReady && authRoleLoaded && isAuthenticated && authRole === 'admin';
   const forceNavigateTo = useCallback(
     (page) => {
       setCurrentPage(page);
@@ -126,7 +130,9 @@ const App = () => {
   const navigateTo = useCallback(
     (page) => {
       if (page === Page.IVA) {
-        setIsIvaOpen(true);
+        if (isAdminWorkspace) {
+          setIsIvaOpen(true);
+        }
         return;
       }
       if (page === Page.INTERNAL && !isAuthenticated) {
@@ -141,7 +147,7 @@ const App = () => {
         window.history.pushState(null, '', `#${targetHash}`);
       }
     },
-    [isAuthenticated, pageToHash]
+    [isAdminWorkspace, isAuthenticated, pageToHash]
   );
 
   const openAdminAccess = useCallback(() => {
@@ -163,6 +169,7 @@ const App = () => {
         }
 
         const user = data.user;
+        window.sessionStorage.setItem(EXPLICIT_LOGIN_SESSION_KEY, '1');
         let role = 'intern';
         try {
           const { data: profile } = await withTimeout(
@@ -291,6 +298,7 @@ const App = () => {
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
+    window.sessionStorage.removeItem(EXPLICIT_LOGIN_SESSION_KEY);
     setAuthUser(null);
     setAuthRole('intern');
     navigateTo(Page.HOME);
@@ -300,7 +308,9 @@ const App = () => {
     const handleHashChange = () => {
       const nextPage = getPageFromHash();
       if (nextPage === Page.IVA) {
-        setIsIvaOpen(true);
+        if (isAdminWorkspace) {
+          setIsIvaOpen(true);
+        }
         window.history.replaceState(null, '', `#${pageToHash[Page.HOME]}`);
         setCurrentPage(Page.HOME);
         return;
@@ -314,19 +324,38 @@ const App = () => {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [getPageFromHash, pageToHash]);
+  }, [getPageFromHash, isAdminWorkspace, pageToHash]);
 
   useEffect(() => {
-    const openIva = () => setIsIvaOpen(true);
+    const openIva = () => {
+      if (isAdminWorkspace) {
+        setIsIvaOpen(true);
+      }
+    };
     window.addEventListener('open-iva', openIva);
     return () => window.removeEventListener('open-iva', openIva);
-  }, []);
+  }, [isAdminWorkspace]);
+
+  useEffect(() => {
+    if (!isAdminWorkspace && isIvaOpen) {
+      setIsIvaOpen(false);
+    }
+  }, [isAdminWorkspace, isIvaOpen]);
 
   useEffect(() => {
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
+      const hasExplicitLogin = window.sessionStorage.getItem(EXPLICIT_LOGIN_SESSION_KEY) === '1';
+      if (data.session?.user && !hasExplicitLogin) {
+        void supabase.auth.signOut().finally(() => {
+          if (!mounted) return;
+          syncAuthUser(null);
+          setAuthReady(true);
+        });
+        return;
+      }
       syncAuthUser(data.session?.user || null);
       setAuthReady(true);
     });
@@ -334,6 +363,9 @@ const App = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        window.sessionStorage.removeItem(EXPLICIT_LOGIN_SESSION_KEY);
+      }
       syncAuthUser(session?.user || null);
     });
 
@@ -450,17 +482,17 @@ const App = () => {
           currentPage={currentPage}
           onNavigate={navigateTo}
           onAdminAccess={openAdminAccess}
-          isAuthenticated={isAuthenticated}
-          canAccessDashboard={isAuthenticated && authRole === 'admin'}
+          isAuthenticated={authReady && authRoleLoaded && isAuthenticated}
+          canAccessDashboard={authReady && authRoleLoaded && isAuthenticated && authRole === 'admin'}
         />
       )}
       <main className="flex-grow">
         {renderContent()}
       </main>
-      {currentPage !== Page.LOGIN && (
+      {isAdminWorkspace && (
         <IvaFloatButton onOpen={() => setIsIvaOpen(true)} />
       )}
-      <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} />
+      {isAdminWorkspace && <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} adminOnly />}
       {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && <Footer onNavigate={navigateTo} />}
     </div>
   );
