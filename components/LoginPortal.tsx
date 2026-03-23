@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { LockKeyhole, User, ShieldCheck, Sparkles } from 'lucide-react';
 import GradientText from './GradientText';
-import Grainient from './Grainient';
 import GhostLoader from './GhostLoader';
 
 interface LoginPortalProps {
@@ -127,29 +126,6 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ adminOnly = false, onLogin, o
 
   return (
     <section className="relative min-h-[calc(100vh-120px)] overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-0">
-        <Grainient
-          color1="#D7FF5B"
-          color2="#0A7A58"
-          color3="#10261c"
-          timeSpeed={0.28}
-          warpStrength={1.15}
-          warpFrequency={5.2}
-          warpSpeed={2.1}
-          warpAmplitude={52}
-          blendSoftness={0.06}
-          rotationAmount={320}
-          noiseScale={1.8}
-          grainAmount={0.12}
-          grainScale={2}
-          grainAnimated={false}
-          contrast={1.35}
-          gamma={1}
-          saturation={1.08}
-          zoom={0.92}
-        />
-      </div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_88%_6%,rgba(255,179,71,0.10),transparent_38%),linear-gradient(to_bottom,rgba(249,247,247,0.22),rgba(249,247,247,0.36))]" />
       <div className="pointer-events-none absolute -left-16 top-24 h-56 w-56 rounded-full border border-white/35"></div>
       <div className="pointer-events-none absolute -right-20 bottom-8 h-64 w-64 rounded-full border border-white/28"></div>
 

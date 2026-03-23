@@ -16,6 +16,8 @@ import CareersApplication from './components/CareersApplication';
 import LoginPortal from './components/LoginPortal';
 import AdminDashboard from './components/AdminDashboard';
 import IvaFloatButton from './components/IvaFloatButton';
+import Grainient from './components/Grainient';
+import FloatingLines from './components/FloatingLines';
 import GhostLoader from './components/GhostLoader';
 import { Page } from './types';
 import { supabase } from './services/supabaseClient';
@@ -473,27 +475,86 @@ const App = () => {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans text-lifewood-darkSerpent transition-colors duration-300 ${
-        currentPage === Page.HOME ? 'bg-lifewood-darkSerpent' : currentPage === Page.INTERNAL ? 'bg-[#0a0f0d]' : 'bg-lifewood-paper'
+      className={`relative isolate min-h-screen flex flex-col overflow-hidden font-sans text-lifewood-darkSerpent transition-colors duration-300 ${
+        currentPage === Page.HOME
+          ? 'bg-lifewood-darkSerpent'
+          : currentPage === Page.INTERNAL
+            ? 'bg-[#0a0f0d]'
+            : currentPage === Page.LOGIN
+              ? 'bg-[#0b1813]'
+              : 'bg-lifewood-paper'
       }`}
     >
-      {currentPage !== Page.INTERNAL && (
-        <Navbar
-          currentPage={currentPage}
-          onNavigate={navigateTo}
-          onAdminAccess={openAdminAccess}
-          isAuthenticated={authReady && authRoleLoaded && isAuthenticated}
-          canAccessDashboard={authReady && authRoleLoaded && isAuthenticated && authRole === 'admin'}
-        />
+      {currentPage === Page.LOGIN && (
+        <div className="pointer-events-none fixed inset-0 z-0">
+          <Grainient
+            color1="#D7FF5B"
+            color2="#0A7A58"
+            color3="#10261c"
+            timeSpeed={0.28}
+            warpStrength={1.15}
+            warpFrequency={5.2}
+            warpSpeed={2.1}
+            warpAmplitude={52}
+            blendSoftness={0.06}
+            rotationAmount={320}
+            noiseScale={1.8}
+            grainAmount={0.12}
+            grainScale={2}
+            grainAnimated={false}
+            contrast={1.35}
+            gamma={1}
+            saturation={1.08}
+            zoom={0.92}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_88%_6%,rgba(255,179,71,0.10),transparent_38%),linear-gradient(to_bottom,rgba(249,247,247,0.18),rgba(249,247,247,0.28))]" />
+        </div>
       )}
-      <main className="flex-grow">
+      {currentPage === Page.HOME && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100svh] overflow-hidden bg-lifewood-darkSerpent md:h-[100dvh]">
+          <FloatingLines
+            enabledWaves={['top', 'middle', 'bottom']}
+            lineCount={[4, 6, 5]}
+            lineDistance={[4.6, 5.2, 4.2]}
+            bendRadius={4.4}
+            bendStrength={-0.42}
+            interactive
+            parallax
+            parallaxStrength={0.12}
+            animationSpeed={0.78}
+            linesGradient={['#0e5f3d', '#1f7a4f', '#ffb347', '#f4d0a4']}
+            topWavePosition={{ x: 8.8, y: 0.55, rotate: -0.38 }}
+            middleWavePosition={{ x: 4.4, y: -0.02, rotate: 0.18 }}
+            bottomWavePosition={{ x: 1.6, y: -0.66, rotate: 0.34 }}
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_55%_34%,rgba(255,179,71,0.19),transparent_52%)] mix-blend-screen"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,26,18,0.30)_0%,rgba(8,27,19,0.48)_58%,rgba(8,27,19,0.72)_100%)]"></div>
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-lifewood-darkSerpent"></div>
+        </div>
+      )}
+      {currentPage !== Page.INTERNAL && (
+        <div className="relative z-10">
+          <Navbar
+            currentPage={currentPage}
+            onNavigate={navigateTo}
+            onAdminAccess={openAdminAccess}
+            isAuthenticated={authReady && authRoleLoaded && isAuthenticated}
+            canAccessDashboard={authReady && authRoleLoaded && isAuthenticated && authRole === 'admin'}
+          />
+        </div>
+      )}
+      <main className="relative z-10 flex-grow">
         {renderContent()}
       </main>
       {isAdminWorkspace && (
         <IvaFloatButton onOpen={() => setIsIvaOpen(true)} />
       )}
       {isAdminWorkspace && <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} adminOnly />}
-      {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && <Footer onNavigate={navigateTo} />}
+      {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && (
+        <div className="relative z-10">
+          <Footer onNavigate={navigateTo} />
+        </div>
+      )}
     </div>
   );
 };

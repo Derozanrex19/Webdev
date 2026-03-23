@@ -2261,9 +2261,6 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 Delete applicant
               </button>
               </div>
-              <p className="mt-3 text-xs text-white/42">
-                Delete applicant only removes this record from the current dashboard view. It does not affect the database.
-              </p>
             </div>
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center justify-between gap-3">

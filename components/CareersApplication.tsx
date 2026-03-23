@@ -37,8 +37,21 @@ const countryOptions = [
 const genderOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const APPLICATION_BUCKET = 'career-documents';
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_CODE_PATTERN = /^\+\d{1,4}$/;
 
 type FormDropdownId = 'gender' | 'position' | 'country';
+
+const normalizePhoneDigits = (value: string) => value.replace(/\D/g, '');
+
+const isValidEmail = (value: string) => EMAIL_PATTERN.test(value.trim().toLowerCase());
+
+const isValidPhone = (code: string, number: string) => {
+  const normalizedCode = code.trim();
+  const normalizedNumber = normalizePhoneDigits(number);
+
+  return PHONE_CODE_PATTERN.test(normalizedCode) && normalizedNumber.length >= 7 && normalizedNumber.length <= 15;
+};
 
 const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) => {
   const [firstName, setFirstName] = useState('');
@@ -128,6 +141,22 @@ const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) =
     event.preventDefault();
     if (!canSubmit || !resumeFile) return;
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhoneCode = phoneCode.trim();
+    const normalizedPhoneNumber = normalizePhoneDigits(phoneNumber);
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      setSuccess('');
+      return;
+    }
+
+    if (!isValidPhone(normalizedPhoneCode, normalizedPhoneNumber)) {
+      setError('Please enter a valid phone number.');
+      setSuccess('');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     setSuccess('');
@@ -155,9 +184,9 @@ const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) =
         last_name: lastName.trim(),
         gender,
         age: Number(age),
-        phone_code: phoneCode.trim(),
-        phone_number: phoneNumber.trim(),
-        email: email.trim().toLowerCase(),
+        phone_code: normalizedPhoneCode,
+        phone_number: normalizedPhoneNumber,
+        email: normalizedEmail,
         position_applied: positionApplied,
         country,
         current_address: currentAddress.trim(),
@@ -170,7 +199,7 @@ const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) =
         throw new Error(insertError.message || 'Application save failed.');
       }
 
-      const applicantEmail = email.trim().toLowerCase();
+      const applicantEmail = normalizedEmail;
       setApplicantEmailForModal(applicantEmail);
 
       // Template variables must match EmailJS template: {{email}} for To, {{first_name}}, {{position_applied}}, optional {{website_link}}
@@ -320,12 +349,26 @@ const CareersApplication: React.FC<CareersApplicationProps> = ({ onNavigate }) =
                 <span className="mb-1.5 block text-white/72">Phone Number</span>
                 <div className="grid grid-cols-[106px_1fr] gap-2">
                   <input value={phoneCode} onChange={(event) => setPhoneCode(event.target.value)} className="career-form-field" placeholder="+63" />
-                  <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} className="career-form-field" placeholder="9123456789" />
+                  <input
+                    value={phoneNumber}
+                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    className="career-form-field"
+                    placeholder="9123456789"
+                    inputMode="tel"
+                    type="tel"
+                  />
                 </div>
               </label>
               <label className="text-sm md:col-span-2">
                 <span className="mb-1.5 block text-white/72">Email Address</span>
-                <input value={email} onChange={(event) => setEmail(event.target.value)} className="career-form-field" placeholder="yourname@example.com" type="email" />
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="career-form-field"
+                  placeholder="yourname@example.com"
+                  type="email"
+                  autoComplete="email"
+                />
               </label>
               <label className="text-sm md:col-span-2">
                 <span className="mb-1.5 block text-white/72">Position Applied</span>
