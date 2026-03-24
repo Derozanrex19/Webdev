@@ -1341,13 +1341,13 @@ Rules for your draft:
         ],
       },
       rejected: {
-        subject: `Lifewood Application Update - ${app.position_applied}`,
+        subject: `New Lifewood Opportunities Available`,
         body: [
           `Hi ${app.first_name},`,
           '',
-          `Thank you for taking the time to apply for the ${app.position_applied} role at Lifewood.`,
-          'After careful review, we will not be moving forward with your application for this position at this time.',
-          'We are keeping your profile in our future-roles waitlist, and we may contact you if a new opportunity opens that better matches your background.',
+          'We hope you have been doing well since your previous application with Lifewood.',
+          'We currently have new roles becoming available, and your profile remains on our future-roles waitlist for potential opportunities that may match your background.',
+          'If you are still interested in being considered for new openings, please reply to this email and let us know.',
           '',
           'Best regards,',
           'Lifewood Recruitment Team',
@@ -1405,6 +1405,12 @@ Rules for your draft:
     setCareerMailError('');
     try {
       const fallback = buildApplicantMailto(selectedCareer);
+      const statusSpecificInstruction =
+        selectedCareer.status === 'rejected'
+          ? 'Because this applicant is in the Future Roles waitlist, write a warm re-engagement email that says new roles are available and asks whether the applicant is still interested in being considered.'
+          : selectedCareer.status === 'contacted'
+            ? 'Because this applicant is in the Next Process waitlist, write a message that keeps momentum and prepares them for the next recruitment step.'
+            : 'Write the most appropriate professional update based on the applicant’s current status.';
       const prompt = `You are Iva, Lifewood's internal admin assistant.
 
 Draft a professional email for this applicant.
@@ -1419,14 +1425,15 @@ Applicant:
 - CV recommendation: ${selectedResumeReview?.recommendation || 'Not available'}
 
 Admin instruction:
-${careerMailInstruction.trim() || 'Write the most appropriate professional update based on the applicant’s current status.'}
+${careerMailInstruction.trim() || statusSpecificInstruction}
 
 Return plain text only in this exact format:
 Subject: <email subject>
 Body:
 <email body>
 
-The body should be ready to send, professional, human, and specific. Do not use placeholders.`;
+The body should be ready to send, professional, human, and specific. Do not use placeholders.
+If the applicant status is rejected, the email should not sound like another rejection. It should sound like a re-engagement message about new roles becoming available and should ask whether the applicant is still interested.`;
 
       const draft = await getIvaResponse(prompt, [], {
         mode: 'admin',
@@ -1561,29 +1568,15 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </span>
               )}
             </button>
-            <div className="pt-2">
-              <p className="px-4 pb-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/35">Waitlists</p>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => openWaitlistLane('next')}
-                  className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'waitlists' && waitlistTab === 'next' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
-                >
-                  <span>Next Process</span>
-                  <span className="rounded-full bg-emerald-300/14 px-2 py-0.5 text-xs font-bold text-emerald-200">
-                    {nextProcessWaitlist.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => openWaitlistLane('future')}
-                  className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'waitlists' && waitlistTab === 'future' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
-                >
-                  <span>Future Roles</span>
-                  <span className="rounded-full bg-red-300/14 px-2 py-0.5 text-xs font-bold text-red-200">
-                    {futureRolesWaitlist.length}
-                  </span>
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={() => setActiveSection('waitlists')}
+              className={`w-full rounded-xl px-4 py-3 text-left transition flex items-center justify-between ${activeSection === 'waitlists' ? 'bg-white/14 font-semibold' : 'text-white/75 hover:bg-white/10'}`}
+            >
+              <span>Waitlists</span>
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white/80">
+                {nextProcessWaitlist.length + futureRolesWaitlist.length}
+              </span>
+            </button>
             <div className="pt-2">
               <p className="px-4 pb-2 text-[0.68rem] uppercase tracking-[0.18em] text-white/35">Insights</p>
               <button
@@ -1779,7 +1772,10 @@ The body should be ready to send, professional, human, and specific. Do not use 
               </div>
 
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                <article className="rounded-3xl border border-emerald-300/14 bg-emerald-300/5 p-6">
+                <article
+                  className="cursor-pointer rounded-3xl border border-emerald-300/14 bg-emerald-300/5 p-6 transition hover:-translate-y-0.5 hover:border-emerald-300/28 hover:bg-emerald-300/8"
+                  onClick={() => openWaitlistLane('next')}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
@@ -1792,6 +1788,9 @@ The body should be ready to send, professional, human, and specific. Do not use 
                       {nextProcessWaitlist.length}
                     </span>
                   </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200/80">
+                    Open waitlist →
+                  </p>
                   {nextProcessWaitlist.length === 0 ? (
                     <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-8 text-sm text-white/50">
                       No applicants are in the next-process waitlist yet.
@@ -1815,7 +1814,10 @@ The body should be ready to send, professional, human, and specific. Do not use 
                   )}
                 </article>
 
-                <article className="rounded-3xl border border-red-300/14 bg-red-300/5 p-6">
+                <article
+                  className="cursor-pointer rounded-3xl border border-red-300/14 bg-red-300/5 p-6 transition hover:-translate-y-0.5 hover:border-red-300/28 hover:bg-red-300/8"
+                  onClick={() => openWaitlistLane('future')}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="inline-flex items-center gap-2 text-lg font-bold text-white">
@@ -1828,6 +1830,9 @@ The body should be ready to send, professional, human, and specific. Do not use 
                       {futureRolesWaitlist.length}
                     </span>
                   </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-red-200/80">
+                    Open waitlist →
+                  </p>
                   {futureRolesWaitlist.length === 0 ? (
                     <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-8 text-sm text-white/50">
                       No applicants are in the future-roles waitlist yet.
@@ -2585,9 +2590,6 @@ The body should be ready to send, professional, human, and specific. Do not use 
                           <Mail className="h-4 w-4" />
                           Contact Applicant
                         </a>
-                        <span className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/60">
-                          Decision locked
-                        </span>
                       </div>
                     </article>
                   ))}
