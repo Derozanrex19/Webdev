@@ -2640,27 +2640,49 @@ If the applicant status is rejected, the email should not sound like another rej
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-white/40">Review Actions</p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setAcceptScheduleModalOpen(true);
-                  setAcceptScheduleError('');
-                }}
-                disabled={updatingStatus || decisionSending !== null || isDecisionLocked(selectedCareer)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {selectedCareer.status === 'contacted' ? 'Accepted' : decisionSending === 'contacted' ? 'Sending acceptance…' : 'Approve'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDecisionAction(selectedCareer, 'rejected')}
-                disabled={updatingStatus || decisionSending !== null || isDecisionLocked(selectedCareer)}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-300/18 disabled:opacity-60"
-              >
-                <AlertCircle className="h-4 w-4" />
-                {selectedCareer.status === 'rejected' ? 'Rejected' : decisionSending === 'rejected' ? 'Rejecting…' : 'Reject'}
-              </button>
+              {selectedCareer.status === 'contacted' ? (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 opacity-70"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Accepted
+                </button>
+              ) : selectedCareer.status === 'rejected' ? (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 opacity-70"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  Rejected
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAcceptScheduleModalOpen(true);
+                      setAcceptScheduleError('');
+                    }}
+                    disabled={updatingStatus || decisionSending !== null}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-300/18 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {decisionSending === 'contacted' ? 'Sending acceptance…' : 'Approve'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDecisionAction(selectedCareer, 'rejected')}
+                    disabled={updatingStatus || decisionSending !== null}
+                    className="inline-flex items-center gap-2 rounded-xl border border-red-300/20 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-300/18 disabled:opacity-60"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {decisionSending === 'rejected' ? 'Rejecting…' : 'Reject'}
+                  </button>
+                </>
+              )}
               <a
                 href="#"
                 onClick={(e) => {
