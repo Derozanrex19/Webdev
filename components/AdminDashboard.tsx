@@ -36,6 +36,7 @@ const CONTACT_HISTORY_KEY = 'lifewood-contact-history';
 const CAREER_VIEW_MODE_KEY = 'lifewood-career-view-mode';
 const IVA_ADMIN_DIRECTORY_KEY = 'lifewood-iva-admin-directory';
 const HIDDEN_CAREER_IDS_KEY = 'lifewood-hidden-career-ids';
+const CAREERS_PER_PAGE = 5;
 
 const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
@@ -499,6 +500,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   const [waitlistTab, setWaitlistTab] = useState<WaitlistTab>('next');
   const [waitlistSearchInput, setWaitlistSearchInput] = useState('');
   const [waitlistSearch, setWaitlistSearch] = useState('');
+  const [careerPage, setCareerPage] = useState(1);
   const [careerViewMode, setCareerViewMode] = useState<CareerViewMode>(() => {
     try {
       const stored = window.localStorage.getItem(CAREER_VIEW_MODE_KEY) as CareerViewMode | null;
@@ -771,6 +773,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       app.position_applied.toLowerCase().includes(q);
     return matchStatus && matchPosition && matchCountry && matchSearch;
   });
+  const totalCareerPages = Math.max(1, Math.ceil(filteredCareers.length / CAREERS_PER_PAGE));
+  const paginatedCareers = filteredCareers.slice(
+    (careerPage - 1) * CAREERS_PER_PAGE,
+    careerPage * CAREERS_PER_PAGE
+  );
 
   const filteredContacts = contactMessages.filter((message) => {
     const q = contactSearch.trim().toLowerCase();
@@ -866,6 +873,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   }, [careerApps, careerFilter, careerPositionFilter, careerCountryFilter, careerSearch]);
 
   useEffect(() => {
+    setCareerPage(1);
+  }, [careerFilter, careerPositionFilter, careerCountryFilter, careerSearch, careerViewMode]);
+
+  useEffect(() => {
+    setCareerPage((prev) => Math.min(prev, totalCareerPages));
+  }, [totalCareerPages]);
+
+  useEffect(() => {
     if (selectedCareer && hiddenCareerIds.includes(selectedCareer.id)) {
       setSelectedCareer(null);
     }
@@ -919,7 +934,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
       title: `${app.first_name} ${app.last_name} hidden from dashboard`,
       detail: 'Front-end only. Database record was not changed.',
     });
-    openToast('Applicant removed from dashboard', 'This only affects your current admin UI and does not delete the database record.');
+    openToast('Applicant deleted', `${app.first_name} ${app.last_name} has been removed from the list.`);
   };
 
   const formatInterviewSchedule = (dateVal: string, timeVal: string) => {
@@ -1067,8 +1082,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userEmail, onLogout, on
   };
 
   const toggleAllVisibleCareers = () => {
+    const paginatedIds = paginatedCareers.map((app) => app.id);
+    const allVisibleSelected = paginatedIds.length > 0 && paginatedIds.every((id) => selectedCareerIds.includes(id));
+
     setSelectedCareerIds((prev) =>
-      prev.length === filteredCareers.length ? [] : filteredCareers.map((app) => app.id)
+      allVisibleSelected
+        ? prev.filter((id) => !paginatedIds.includes(id))
+        : Array.from(new Set([...prev, ...paginatedIds]))
     );
   };
 
@@ -1612,7 +1632,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                   <div className="relative flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-white/55">Career Applications</p>
-                      <p className="mt-3 text-5xl font-black text-lifewood-saffron">{careerApps.length}</p>
+                      <p className="mt-3 text-5xl font-black text-lifewood-saffron">{visibleCareerApps.length}</p>
                       <p className="mt-2 text-sm text-white/62">{newCareersCount} new candidates waiting for review</p>
                     </div>
                     <div className="rounded-2xl border border-lifewood-saffron/25 bg-lifewood-saffron/10 p-3 text-lifewood-saffron">
@@ -1692,11 +1712,11 @@ The body should be ready to send, professional, human, and specific. Do not use 
                     <div className="mt-4 flex justify-center py-5">
                       <GhostLoader label="Loading" scale={0.2} />
                     </div>
-                  ) : careerApps.length === 0 ? (
+                  ) : visibleCareerApps.length === 0 ? (
                     <p className="mt-4 text-white/60">No applications yet.</p>
                   ) : (
                     <ul className="mt-5 space-y-2.5">
-                      {careerApps.slice(0, 5).map((app) => (
+                      {visibleCareerApps.slice(0, 5).map((app) => (
                         <li
                           key={app.id}
                           className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 cursor-pointer hover:bg-white/5 transition"
@@ -1892,7 +1912,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                   </div>
                   <div className="mt-5 space-y-4">
                     {statusBreakdown.map(({ status, count }) => {
-                      const percentage = careerApps.length ? Math.round((count / careerApps.length) * 100) : 0;
+                      const percentage = visibleCareerApps.length ? Math.round((count / visibleCareerApps.length) * 100) : 0;
                       return (
                         <div key={status}>
                           <div className="flex items-center justify-between gap-3 text-sm">
@@ -2011,7 +2031,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-white/45">
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                    {filteredCareers.length} application{filteredCareers.length === 1 ? '' : 's'} shown
+                    Showing {paginatedCareers.length} of {filteredCareers.length} application{filteredCareers.length === 1 ? '' : 's'}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
                     Sorted by newest
@@ -2074,7 +2094,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                 </div>
               ) : careerViewMode === 'cards' ? (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredCareers.map((app) => (
+                  {paginatedCareers.map((app) => (
                     <article
                       key={app.id}
                       className="group flex flex-col justify-between rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.22))] p-4 shadow-[0_18px_35px_rgba(0,0,0,0.45)] backdrop-blur-sm cursor-pointer transition hover:-translate-y-0.5 hover:border-lifewood-saffron/60 hover:bg-black/40"
@@ -2153,7 +2173,10 @@ The body should be ready to send, professional, human, and specific. Do not use 
                           <th className="px-4 py-3">
                             <input
                               type="checkbox"
-                              checked={filteredCareers.length > 0 && selectedCount === filteredCareers.length}
+                              checked={
+                                paginatedCareers.length > 0 &&
+                                paginatedCareers.every((app) => selectedCareerIds.includes(app.id))
+                              }
                               onChange={toggleAllVisibleCareers}
                               className="h-4 w-4 rounded border-white/20 bg-black/20 text-lifewood-saffron focus:ring-lifewood-saffron/30"
                             />
@@ -2167,7 +2190,7 @@ The body should be ready to send, professional, human, and specific. Do not use 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/8 text-sm">
-                        {filteredCareers.map((app) => (
+                        {paginatedCareers.map((app) => (
                           <tr key={app.id} className="hover:bg-white/[0.03]">
                             <td className="px-4 py-3">
                               <input
@@ -2212,6 +2235,51 @@ The body should be ready to send, professional, human, and specific. Do not use 
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+              {filteredCareers.length > CAREERS_PER_PAGE && (
+                <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-white/50">
+                    Page <span className="font-semibold text-white/80">{careerPage}</span> of{' '}
+                    <span className="font-semibold text-white/80">{totalCareerPages}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCareerPage((prev) => Math.max(1, prev - 1))}
+                      disabled={careerPage === 1}
+                      className="rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalCareerPages }, (_, index) => {
+                        const pageNumber = index + 1;
+                        return (
+                          <button
+                            key={pageNumber}
+                            type="button"
+                            onClick={() => setCareerPage(pageNumber)}
+                            className={`h-9 min-w-9 rounded-xl px-3 text-xs font-semibold transition ${
+                              careerPage === pageNumber
+                                ? 'bg-lifewood-saffron text-lifewood-darkSerpent'
+                                : 'border border-white/12 bg-white/5 text-white/70 hover:bg-white/10'
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCareerPage((prev) => Math.min(totalCareerPages, prev + 1))}
+                      disabled={careerPage === totalCareerPages}
+                      className="rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               )}
