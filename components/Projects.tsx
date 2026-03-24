@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ArrowRight, BrainCircuit, Cpu, Headset, Mic, ScanEye, ScrollText, ShieldCheck } from 'lucide-react';
 import { Page } from '../types';
 import Threads from './Threads';
 import ScrollReveal from './ScrollReveal';
 import SplitText from './SplitText';
-import PixelTransition from './PixelTransition';
 import GradientText from './GradientText';
 import CountUp from './CountUp';
+import CardSwap, { Card, type CardSwapHandle } from './CardSwap';
 
 interface ProjectItem {
   id: string;
@@ -76,39 +76,122 @@ const projects: ProjectItem[] = [
   },
 ];
 
-interface RevealOnScrollProps {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}
+const ProjectShowcase: React.FC<{ projects: ProjectItem[] }> = ({ projects }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const swapRef = useRef<CardSwapHandle>(null);
 
-const RevealOnScroll: React.FC<RevealOnScrollProps> = ({ children, className = '', delay = 0 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { setIsVisible(entry.isIntersecting); },
-      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
-    );
-    const currentRef = ref.current;
-    if (currentRef) observer.observe(currentRef);
-    return () => {
-      if (currentRef) observer.unobserve(currentRef);
-      observer.disconnect();
-    };
-  }, []);
+  const handleSelect = (i: number) => {
+    setActiveIndex(i);
+    swapRef.current?.swapTo(i);
+  };
 
   return (
-    <div
-      ref={ref}
-      className={`${className} transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-[0.98]'
-      }`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
+    <section className="bg-lifewood-paper py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+          {/* Left: active project details */}
+          <div className="relative order-2 lg:order-1">
+            {projects.map((project, i) => {
+              const Icon = project.icon;
+              return (
+                <div
+                  key={project.id}
+                  className={`transition-all duration-500 ${
+                    activeIndex === i
+                      ? 'pointer-events-auto opacity-100'
+                      : 'pointer-events-none absolute inset-0 opacity-0'
+                  }`}
+                  aria-hidden={activeIndex !== i}
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lifewood-castleton/10">
+                      {React.cloneElement(Icon as React.ReactElement<{ className?: string }>, {
+                        className: 'w-5 h-5 text-lifewood-castleton',
+                      })}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-lifewood-castleton/60">
+                      Project {project.id}
+                    </span>
+                  </div>
+                  <h3 className="mb-3 text-2xl font-bold leading-tight text-lifewood-darkSerpent md:text-3xl">
+                    {project.title}
+                  </h3>
+                  <div className="mb-4 h-1 w-12 rounded-full bg-lifewood-saffron" />
+                  <p className="text-sm leading-relaxed text-lifewood-darkSerpent/70 md:text-base">
+                    {project.description}
+                  </p>
+                  <div className="mt-6 flex items-baseline gap-1.5">
+                    <span className="text-3xl font-extrabold text-lifewood-castleton">
+                      <CountUp to={project.stat.value} duration={0.8} />
+                    </span>
+                    <span className="text-lg font-bold text-lifewood-castleton">{project.stat.suffix}</span>
+                    <span className="ml-2 text-xs font-medium uppercase tracking-wide text-lifewood-darkSerpent/50">
+                      {project.stat.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Project selector pills */}
+            <div className="mt-8 flex flex-wrap gap-2">
+              {projects.map((project, i) => (
+                <button
+                  type="button"
+                  key={project.id}
+                  onClick={() => handleSelect(i)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                    activeIndex === i
+                      ? 'bg-lifewood-castleton text-white shadow-md'
+                      : 'border border-lifewood-darkSerpent/12 bg-white text-lifewood-darkSerpent/60 hover:border-lifewood-castleton/30 hover:text-lifewood-castleton'
+                  }`}
+                >
+                  {project.id}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: CardSwap animation */}
+          <div className="relative order-1 h-[480px] lg:order-2 lg:h-[550px]">
+            <CardSwap
+              ref={swapRef}
+              cardDistance={50}
+              verticalDistance={55}
+              width={460}
+              height={340}
+              skewAmount={4}
+              easing="elastic"
+              onFrontChange={(i) => setActiveIndex(i)}
+            >
+              {projects.map((project) => (
+                <Card key={project.id}>
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="h-[60%] w-full object-cover"
+                  />
+                  <div className="flex h-[40%] flex-col justify-center px-6">
+                    <span className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-lifewood-castleton/60">
+                      Project {project.id}
+                    </span>
+                    <h4 className="text-lg font-bold text-lifewood-darkSerpent">{project.title}</h4>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <span className="text-xl font-extrabold text-lifewood-castleton">
+                        {project.stat.value}{project.stat.suffix}
+                      </span>
+                      <span className="ml-1 text-[10px] font-medium uppercase tracking-wider text-lifewood-darkSerpent/45">
+                        {project.stat.label}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </CardSwap>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -163,100 +246,8 @@ const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ─── PROJECT SHOWCASE GRID ─── */}
-      <section className="py-24 bg-lifewood-paper">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-20">
-            {projects.map((project, index) => {
-              const isReversed = index % 2 === 1;
-              const Icon = project.icon;
-
-              return (
-                <RevealOnScroll key={project.id} delay={index * 60}>
-                  <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center ${isReversed ? 'lg:[direction:rtl]' : ''}`}>
-                    {/* PixelTransition image card */}
-                    <div className={`${isReversed ? 'lg:[direction:ltr]' : ''}`}>
-                      <PixelTransition
-                        firstContent={
-                          <div className="relative w-full h-full">
-                            <img
-                              src={project.image}
-                              alt={project.title}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0d]/60 via-transparent to-transparent" />
-                            <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-lifewood-saffron/15 border border-lifewood-saffron/30 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-lifewood-saffron backdrop-blur-md">
-                                Project {project.id}
-                              </span>
-                            </div>
-                          </div>
-                        }
-                        secondContent={
-                          <div className="flex h-full w-full items-center justify-center bg-[#0d1f17] p-8 text-center">
-                            <div>
-                              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-lifewood-castleton">
-                                {React.cloneElement(Icon as React.ReactElement<{ className?: string }>, {
-                                  className: 'w-6 h-6 text-white',
-                                })}
-                              </div>
-                              <p className="text-2xl font-extrabold text-lifewood-saffron">
-                                <CountUp to={project.stat.value} duration={0.8} />
-                                {project.stat.suffix}
-                              </p>
-                              <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-white/50">
-                                {project.stat.label}
-                              </p>
-                              <p className="mt-4 text-sm leading-relaxed text-white/70">
-                                Hover to read more
-                              </p>
-                            </div>
-                          </div>
-                        }
-                        gridSize={8}
-                        pixelColor="#0d1f17"
-                        animationStepDuration={0.3}
-                        aspectRatio="56%"
-                        className="rounded-2xl overflow-hidden shadow-2xl border border-lifewood-darkSerpent/10"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className={`${isReversed ? 'lg:[direction:ltr]' : ''}`}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lifewood-castleton/10">
-                          {React.cloneElement(Icon as React.ReactElement<{ className?: string }>, {
-                            className: 'w-5 h-5 text-lifewood-castleton',
-                          })}
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-lifewood-castleton/60">
-                          Project {project.id}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl md:text-3xl font-bold text-lifewood-darkSerpent leading-tight mb-4">
-                        {project.title}
-                      </h3>
-                      <div className="h-1 w-12 rounded-full bg-lifewood-saffron mb-5" />
-                      <p className="text-base leading-relaxed text-lifewood-darkSerpent/70 whitespace-pre-line">
-                        {project.description}
-                      </p>
-                      <div className="mt-6 flex items-center gap-6">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-extrabold text-lifewood-castleton">
-                            <CountUp to={project.stat.value} duration={0.8} />
-                          </span>
-                          <span className="text-lg font-bold text-lifewood-castleton">{project.stat.suffix}</span>
-                          <span className="ml-2 text-xs font-medium uppercase tracking-wide text-lifewood-darkSerpent/50">{project.stat.label}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </RevealOnScroll>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* ─── PROJECT SHOWCASE — CARD SWAP ─── */}
+      <ProjectShowcase projects={projects} />
 
       {/* ─── CTA WITH GRADIENT TEXT ─── */}
       <section className="relative overflow-hidden bg-[#0a0f0d] py-28 border-t border-white/8">
