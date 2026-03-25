@@ -2403,7 +2403,7 @@ If the applicant status is rejected, the email should not sound like another rej
 
                         {/* Original message */}
                         <div className="mt-4 rounded-2xl border border-white/8 bg-[#0b110e] p-4">
-                          <p className="whitespace-pre-wrap text-sm leading-7 text-white/82">
+                          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-7 text-white/82">
                             {selectedContact.message}
                           </p>
                         </div>
@@ -2976,18 +2976,6 @@ If the applicant status is rejected, the email should not sound like another rej
               >
                 Cancel
               </button>
-              <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedCareer.email)}&su=${encodeURIComponent(careerMailSubject)}&body=${encodeURIComponent(careerMailBody)}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => {
-                  logApplicantContact(selectedCareer);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/82 hover:bg-white/10"
-              >
-                <Mail className="h-4 w-4" />
-                Open Gmail
-              </a>
               <button
                 type="button"
                 onClick={() => void handleSendCareerMailWithEmailJs()}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   Globe,
@@ -13,12 +13,12 @@ import {
 import { FiSend } from 'react-icons/fi';
 import { Page } from '../types';
 import VariableProximity from './VariableProximity';
-import Masonry from './Masonry';
-import Threads from './Threads';
-import ScrollReveal from './ScrollReveal';
-import SplitText from './SplitText';
-import CountUp from './CountUp';
-import GradientText from './GradientText';
+const Masonry = lazy(() => import('./Masonry'));
+const Threads = lazy(() => import('./Threads'));
+const ScrollReveal = lazy(() => import('./ScrollReveal'));
+const SplitText = lazy(() => import('./SplitText'));
+const CountUp = lazy(() => import('./CountUp'));
+const GradientText = lazy(() => import('./GradientText'));
 
 interface HomeProps {
   onNavigate: (page: Page) => void;
@@ -286,6 +286,16 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
     { value: '40+', label: 'DELIVERY CENTERS' },
   ];
 
+  const textSectionFallback = (
+    <>
+      <p className="text-4xl font-extrabold uppercase tracking-tight text-white md:text-6xl">AI Data Services</p>
+      <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-white/60 md:text-lg">
+        Lifewood offers AI and IT services that enhance decision-making, reduce costs, and improve productivity to
+        optimize organizational performance.
+      </p>
+    </>
+  );
+
   return (
     <div className="text-lifewood-darkSerpent">
       {/* ─── HERO (KEPT) ─── */}
@@ -414,17 +424,21 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             </h3>
           </RevealOnScroll>
           <RevealOnScroll delay={120}>
-            <Masonry
-              items={masonryItems}
-              ease="power3.out"
-              duration={0.6}
-              stagger={0.05}
-              animateFrom="bottom"
-              scaleOnHover
-              hoverScale={0.95}
-              blurToFocus
-              colorShiftOnHover={false}
-            />
+            <Suspense
+              fallback={<div className="h-[420px] rounded-[32px] border border-lifewood-darkSerpent/10 bg-white/55 shadow-[0_18px_34px_rgba(19,48,32,0.08)]" />}
+            >
+              <Masonry
+                items={masonryItems}
+                ease="power3.out"
+                duration={0.6}
+                stagger={0.05}
+                animateFrom="bottom"
+                scaleOnHover
+                hoverScale={0.95}
+                blurToFocus
+                colorShiftOnHover={false}
+              />
+            </Suspense>
           </RevealOnScroll>
         </div>
       </section>
@@ -478,42 +492,48 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       <section className="relative overflow-hidden bg-[#0a0f0d] py-28">
         {/* Threads shader background */}
         <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.35]">
-          <Threads
-            color={[0.016, 0.384, 0.255]}
-            amplitude={0.4}
-            distance={0.8}
-            enableMouseInteraction={false}
-          />
+          <Suspense fallback={null}>
+            <Threads
+              color={[0.016, 0.384, 0.255]}
+              amplitude={0.4}
+              distance={0.8}
+              enableMouseInteraction={false}
+            />
+          </Suspense>
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* ScrollReveal headline */}
           <div className="mb-6 text-center">
-            <ScrollReveal
-              enableBlur
-              baseOpacity={0.1}
-              baseRotation={3}
-              blurStrength={4}
-              textClassName="text-4xl md:text-6xl font-extrabold uppercase tracking-tight text-white"
-            >
-              AI Data Services
-            </ScrollReveal>
+            <Suspense fallback={textSectionFallback}>
+              <ScrollReveal
+                enableBlur
+                baseOpacity={0.1}
+                baseRotation={3}
+                blurStrength={4}
+                textClassName="text-4xl md:text-6xl font-extrabold uppercase tracking-tight text-white"
+              >
+                AI Data Services
+              </ScrollReveal>
+            </Suspense>
           </div>
 
           {/* SplitText subtitle */}
           <div className="mx-auto mb-16 max-w-3xl text-center">
-            <SplitText
-              text="Lifewood offers AI and IT services that enhance decision-making, reduce costs, and improve productivity to optimize organizational performance."
-              className="text-base md:text-lg leading-relaxed text-white/60"
-              delay={0.03}
-              duration={0.5}
-              ease="power2.out"
-              splitType="words"
-              from={{ opacity: 0, y: 20 }}
-              to={{ opacity: 1, y: 0 }}
-              threshold={0.2}
-              textAlign="center"
-            />
+            <Suspense fallback={null}>
+              <SplitText
+                text="Lifewood offers AI and IT services that enhance decision-making, reduce costs, and improve productivity to optimize organizational performance."
+                className="text-base md:text-lg leading-relaxed text-white/60"
+                delay={0.03}
+                duration={0.5}
+                ease="power2.out"
+                splitType="words"
+                from={{ opacity: 0, y: 20 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.2}
+                textAlign="center"
+              />
+            </Suspense>
           </div>
 
           {/* Service cards — 3D tilt + spotlight */}
@@ -550,7 +570,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             {serviceStats.map((stat, i) => (
               <div key={stat.label} className="text-center">
                 <p className="text-4xl font-extrabold text-lifewood-saffron md:text-5xl">
-                  <CountUp to={stat.value} duration={0.8} separator={stat.separator || ''} delay={i * 0.08} />
+                  <Suspense fallback={<span>{stat.value.toLocaleString()}</span>}>
+                    <CountUp to={stat.value} duration={0.8} separator={stat.separator || ''} delay={i * 0.08} />
+                  </Suspense>
                   <span>{stat.suffix}</span>
                 </p>
                 <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/50">{stat.label}</p>
@@ -564,14 +586,16 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               onClick={() => onNavigate(Page.SERVICES)}
               className="group inline-flex items-center gap-3"
             >
-              <GradientText
-                className="text-2xl font-bold md:text-3xl"
-                colors={['#046241', '#FFB347', '#FFC370', '#046241']}
-                animationSpeed={6}
-                direction="horizontal"
-              >
-                Explore Our Services
-              </GradientText>
+              <Suspense fallback={<span className="text-2xl font-bold text-lifewood-saffron md:text-3xl">Explore Our Services</span>}>
+                <GradientText
+                  className="text-2xl font-bold md:text-3xl"
+                  colors={['#046241', '#FFB347', '#FFC370', '#046241']}
+                  animationSpeed={6}
+                  direction="horizontal"
+                >
+                  Explore Our Services
+                </GradientText>
+              </Suspense>
               <ArrowRight className="h-6 w-6 text-lifewood-saffron transition-transform duration-300 group-hover:translate-x-1" />
             </button>
           </div>

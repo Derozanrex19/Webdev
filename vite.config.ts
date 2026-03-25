@@ -24,6 +24,53 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       target: 'es2019',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+
+            if (
+              id.includes('react') ||
+              id.includes('scheduler') ||
+              id.includes('motion')
+            ) {
+              return 'react-vendor';
+            }
+
+            if (
+              id.includes('@supabase') ||
+              id.includes('@emailjs')
+            ) {
+              return 'admin-vendor';
+            }
+
+            if (
+              id.includes('@google/genai')
+            ) {
+              return 'ai-vendor';
+            }
+
+            if (
+              id.includes('recharts')
+            ) {
+              return 'charts-vendor';
+            }
+
+            if (
+              id.includes('three') ||
+              id.includes('ogl') ||
+              id.includes('gsap') ||
+              id.includes('lenis')
+            ) {
+              return 'animation-vendor';
+            }
+
+            if (id.includes('react-icons') || id.includes('lucide-react')) {
+              return 'icons-vendor';
+            }
+          },
+        },
+      },
     },
   };
 });

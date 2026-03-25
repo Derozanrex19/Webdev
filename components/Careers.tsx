@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { ArrowRight, Briefcase, Clock3, MapPin } from 'lucide-react';
 import { Page } from '../types';
-import SplitText from './SplitText';
+const SplitText = lazy(() => import('./SplitText'));
 
 interface CareersProps {
   onNavigate: (page: Page) => void;
@@ -185,20 +185,28 @@ const Careers: React.FC<CareersProps> = ({ onNavigate }) => {
 
       <section className="careers-fade-up careers-fade-6 relative z-10 mx-auto mt-20 max-w-6xl px-4 text-center sm:px-6 lg:px-8">
         <div className="rounded-[38px] border border-white/10 bg-white/[0.06] px-6 py-10 shadow-[0_18px_32px_rgba(0,0,0,0.16)] backdrop-blur-sm md:px-10 md:py-12">
-          <SplitText
-            text="If you are looking for work that asks more of your thinking, your judgment, and your discipline, this is where the conversation starts."
-            className="careers-quote text-[2rem] leading-[1.18] tracking-[-0.03em] text-white md:text-[3.35rem]"
-            delay={16}
-            duration={0.8}
-            ease="power3.out"
-            splitType="chars"
-            from={{ opacity: 0, y: 24 }}
-            to={{ opacity: 1, y: 0 }}
-            threshold={0.15}
-            rootMargin="-80px"
-            textAlign="center"
-            tag="p"
-          />
+          <Suspense
+            fallback={
+              <p className="careers-quote text-[2rem] leading-[1.18] tracking-[-0.03em] text-white md:text-[3.35rem]">
+                If you are looking for work that asks more of your thinking, your judgment, and your discipline, this is where the conversation starts.
+              </p>
+            }
+          >
+            <SplitText
+              text="If you are looking for work that asks more of your thinking, your judgment, and your discipline, this is where the conversation starts."
+              className="careers-quote text-[2rem] leading-[1.18] tracking-[-0.03em] text-white md:text-[3.35rem]"
+              delay={16}
+              duration={0.8}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 24 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.15}
+              rootMargin="-80px"
+              textAlign="center"
+              tag="p"
+            />
+          </Suspense>
           <p className="careers-tagline mt-5 text-lg text-white/62 md:text-[1.4rem]">
             Work with structure. Grow with range. Deliver with intent.
           </p>

@@ -1,28 +1,38 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import Navbar from './components/Navbar';
-import Home from './components/Home';
-import Hero from './components/Hero';
-import Services from './components/Services';
-import About from './components/About';
-import IvaChat from './components/IvaChat';
-import Contact from './components/Contact';
 import Footer from './components/Footer';
-import Offices from './components/Offices';
-import Projects from './components/Projects';
-import OfferTypePage from './components/OfferTypePage';
-import PhilImpact from './components/PhilImpact';
-import Careers from './components/Careers';
-import CareersApplication from './components/CareersApplication';
-import LoginPortal from './components/LoginPortal';
-import AdminDashboard from './components/AdminDashboard';
-import IvaFloatButton from './components/IvaFloatButton';
-import Grainient from './components/Grainient';
-import FloatingLines from './components/FloatingLines';
 import GhostLoader from './components/GhostLoader';
 import { Page } from './types';
 import { supabase } from './services/supabaseClient';
 
+const Grainient = lazy(() => import('./components/Grainient'));
+const FloatingLines = lazy(() => import('./components/FloatingLines'));
+const Home = lazy(() => import('./components/Home'));
+const Hero = lazy(() => import('./components/Hero'));
+const Services = lazy(() => import('./components/Services'));
+const About = lazy(() => import('./components/About'));
+const IvaChat = lazy(() => import('./components/IvaChat'));
+const Contact = lazy(() => import('./components/Contact'));
+const Offices = lazy(() => import('./components/Offices'));
+const Projects = lazy(() => import('./components/Projects'));
+const OfferTypePage = lazy(() => import('./components/OfferTypePage'));
+const PhilImpact = lazy(() => import('./components/PhilImpact'));
+const Careers = lazy(() => import('./components/Careers'));
+const CareersApplication = lazy(() => import('./components/CareersApplication'));
+const LoginPortal = lazy(() => import('./components/LoginPortal'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const IvaFloatButton = lazy(() => import('./components/IvaFloatButton'));
+
 const EXPLICIT_LOGIN_SESSION_KEY = 'lifewood-explicit-admin-login';
+
+const PageLoader = ({ label = 'Loading page' }) => (
+  <section className="min-h-[calc(100vh-120px)] px-4 py-16 text-center">
+    <p className="text-sm uppercase tracking-[0.2em] text-lifewood-darkSerpent/60">{label}</p>
+    <div className="mt-6 flex justify-center">
+      <GhostLoader label={label} scale={0.24} />
+    </div>
+  </section>
+);
 
 const App = () => {
   const withTimeout = useCallback(
@@ -501,46 +511,50 @@ const App = () => {
     >
       {currentPage === Page.LOGIN && (
         <div className="pointer-events-none fixed inset-0 z-0">
-          <Grainient
-            color1="#D7FF5B"
-            color2="#0A7A58"
-            color3="#10261c"
-            timeSpeed={0.28}
-            warpStrength={1.15}
-            warpFrequency={5.2}
-            warpSpeed={2.1}
-            warpAmplitude={52}
-            blendSoftness={0.06}
-            rotationAmount={320}
-            noiseScale={1.8}
-            grainAmount={0.12}
-            grainScale={2}
-            grainAnimated={false}
-            contrast={1.35}
-            gamma={1}
-            saturation={1.08}
-            zoom={0.92}
-          />
+          <Suspense fallback={null}>
+            <Grainient
+              color1="#D7FF5B"
+              color2="#0A7A58"
+              color3="#10261c"
+              timeSpeed={0.28}
+              warpStrength={1.15}
+              warpFrequency={5.2}
+              warpSpeed={2.1}
+              warpAmplitude={52}
+              blendSoftness={0.06}
+              rotationAmount={320}
+              noiseScale={1.8}
+              grainAmount={0.12}
+              grainScale={2}
+              grainAnimated={false}
+              contrast={1.35}
+              gamma={1}
+              saturation={1.08}
+              zoom={0.92}
+            />
+          </Suspense>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(255,255,255,0.16),transparent_42%),radial-gradient(circle_at_88%_6%,rgba(255,179,71,0.10),transparent_38%),linear-gradient(to_bottom,rgba(249,247,247,0.18),rgba(249,247,247,0.28))]" />
         </div>
       )}
       {currentPage === Page.HOME && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[100svh] overflow-hidden bg-lifewood-darkSerpent md:h-[100dvh]">
-          <FloatingLines
-            enabledWaves={['top', 'middle', 'bottom']}
-            lineCount={[4, 6, 5]}
-            lineDistance={[4.6, 5.2, 4.2]}
-            bendRadius={4.4}
-            bendStrength={-0.42}
-            interactive
-            parallax
-            parallaxStrength={0.12}
-            animationSpeed={0.78}
-            linesGradient={['#0e5f3d', '#1f7a4f', '#ffb347', '#f4d0a4']}
-            topWavePosition={{ x: 8.8, y: 0.55, rotate: -0.38 }}
-            middleWavePosition={{ x: 4.4, y: -0.02, rotate: 0.18 }}
-            bottomWavePosition={{ x: 1.6, y: -0.66, rotate: 0.34 }}
-          />
+          <Suspense fallback={null}>
+            <FloatingLines
+              enabledWaves={['top', 'middle', 'bottom']}
+              lineCount={[4, 6, 5]}
+              lineDistance={[4.6, 5.2, 4.2]}
+              bendRadius={4.4}
+              bendStrength={-0.42}
+              interactive
+              parallax
+              parallaxStrength={0.12}
+              animationSpeed={0.78}
+              linesGradient={['#0e5f3d', '#1f7a4f', '#ffb347', '#f4d0a4']}
+              topWavePosition={{ x: 8.8, y: 0.55, rotate: -0.38 }}
+              middleWavePosition={{ x: 4.4, y: -0.02, rotate: 0.18 }}
+              bottomWavePosition={{ x: 1.6, y: -0.66, rotate: 0.34 }}
+            />
+          </Suspense>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_55%_34%,rgba(255,179,71,0.19),transparent_52%)] mix-blend-screen"></div>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,26,18,0.30)_0%,rgba(8,27,19,0.48)_58%,rgba(8,27,19,0.72)_100%)]"></div>
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-lifewood-darkSerpent"></div>
@@ -558,12 +572,18 @@ const App = () => {
         </div>
       )}
       <main className="relative z-10 flex-grow">
-        {renderContent()}
+        <Suspense fallback={<PageLoader label="Loading section" />}>{renderContent()}</Suspense>
       </main>
       {isAdminWorkspace && (
-        <IvaFloatButton onOpen={() => setIsIvaOpen(true)} />
+        <Suspense fallback={null}>
+          <IvaFloatButton onOpen={() => setIsIvaOpen(true)} />
+        </Suspense>
       )}
-      {isAdminWorkspace && <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} adminOnly />}
+      {isAdminWorkspace && (
+        <Suspense fallback={null}>
+          <IvaChat isOpen={isIvaOpen} onClose={() => setIsIvaOpen(false)} adminOnly />
+        </Suspense>
+      )}
       {currentPage !== Page.LOGIN && currentPage !== Page.INTERNAL && (
         <div className="relative z-10">
           <Footer onNavigate={navigateTo} />

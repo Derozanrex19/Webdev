@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Globe2, HandHeart, Leaf, Users2 } from 'lucide-react';
-import ScrollVelocity from './ScrollVelocity';
 import { Page } from '../types';
+const ScrollVelocity = lazy(() => import('./ScrollVelocity'));
 
 type Loc = { name: string; coords: [number, number] };
 type Row = { title: string; description: string; image: string; alt: string; reverse: boolean };
@@ -354,7 +354,23 @@ const PhilImpact: React.FC<PhilImpactProps> = ({ onNavigate }) => {
               </p>
             </div>
             <div className="mt-6 overflow-hidden rounded-2xl border border-lifewood-darkSerpent/10 bg-lifewood-seasalt py-3">
-              <ScrollVelocity texts={countryRows} velocity={24} className="px-2.5 uppercase text-lifewood-darkSerpent/88" damping={52} stiffness={360} numCopies={5} scrollerClassName="scroller scroller--compact" />
+              <Suspense
+                fallback={
+                  <div className="overflow-hidden px-2.5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-lifewood-darkSerpent/80">
+                    {countryRows.join(' • ')}
+                  </div>
+                }
+              >
+                <ScrollVelocity
+                  texts={countryRows}
+                  velocity={24}
+                  className="px-2.5 uppercase text-lifewood-darkSerpent/88"
+                  damping={52}
+                  stiffness={360}
+                  numCopies={5}
+                  scrollerClassName="scroller scroller--compact"
+                />
+              </Suspense>
             </div>
           </div>
         </RevealOnScroll>
